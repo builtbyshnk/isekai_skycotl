@@ -1,51 +1,361 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useMemo, useState } from "react";
+import { emit, listen } from "@tauri-apps/api/event";
 import "./App.css";
+import { AppSidebar, type AppPage } from "@/components/app-sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { DEFAULT_SETTINGS, mergeSettings } from "@/domain/settings";
+import { generateEventInstances } from "@/domain/events";
+import {
+  deserializePlannerState,
+  PLANNER_STORAGE_KEY,
+  serializePlannerState,
+  type PlannerState,
+} from "@/domain/planner";
+import { applyAppearance } from "@/domain/theme";
+import type { AppSettings, EventInstance } from "@/domain/types";
+import {
+  configureOverlayWindow,
+  getWindowLabel,
+  isTauriRuntime,
+  registerAppHotkeys,
+  toggleOverlay,
+} from "@/tauri/overlay";
+import {
+  CalendarPage,
+  CollectionPage,
+  GoalsPage,
+  Overlay,
+  OverlaySettingsPage,
+  OverviewPage,
+  PageHeader,
+  SettingsPage,
+} from "@/pages";
+
+const SETTINGS_KEY = "sky-cotl-clock-settings";
+
+function readStoredSettings() {
+  try {
+    return mergeSettings(JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "null"));
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function readStoredPlanner() {
+  return deserializePlannerState(localStorage.getItem(PLANNER_STORAGE_KEY));
+}
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [settings, setSettings] = useState<AppSettings>(readStoredSettings);
+  const [planner, setPlanner] = useState<PlannerState>(readStoredPlanner);
+  const [activePage, setActivePage] = useState<AppPage>("overview");
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [now, setNow] = useState(() => new Date());
+  const [windowLabel, setWindowLabel] = useState<string | null>(null);
+  const [hotkeyError, setHotkeyError] = useState("");
+  const enabledEventsKey = useMemo(
+    () => JSON.stringify(settings.events),
+    [settings.events],
+  );
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  useEffect(() => {
+    void getWindowLabel().then((label) => {
+      document.body.dataset.windowLabel = label;
+      setWindowLabel(label);
+    });
+  }, []);
+
+  useEffect(() => {
+    applyAppearance(settings);
+  }, [
+    settings.appearance.accentColor,
+    settings.appearance.fontFamily,
+    settings.theme,
+  ]);
+
+  useEffect(() => {
+    if (windowLabel !== "main") {
+      return;
+    }
+
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    window.dispatchEvent(new CustomEvent("sky-settings-changed"));
+    if (isTauriRuntime()) {
+      void emit("sky-settings-changed", settings);
+    }
+  }, [settings, windowLabel]);
+
+  useEffect(() => {
+    if (windowLabel !== "main") {
+      return;
+    }
+
+    localStorage.setItem(PLANNER_STORAGE_KEY, serializePlannerState(planner));
+  }, [planner, windowLabel]);
+
+  useEffect(() => {
+    void configureOverlayWindow(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    if (windowLabel !== "overlay") {
+      return;
+    }
+
+    const syncSettings = () => setSettings(readStoredSettings());
+    const unlistenPromise = isTauriRuntime()
+      ? listen<AppSettings>("sky-settings-changed", (event) =>
+          setSettings(mergeSettings(event.payload)),
+        )
+      : Promise.resolve(() => undefined);
+
+    window.addEventListener("storage", syncSettings);
+    window.addEventListener("sky-settings-changed", syncSettings);
+
+    return () => {
+      window.removeEventListener("storage", syncSettings);
+      window.removeEventListener("sky-settings-changed", syncSettings);
+      void unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, [windowLabel]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (windowLabel !== "main") {
+      return;
+    }
+
+    void registerAppHotkeys(settings, setHotkeyError);
+  }, [
+    settings.hotkeys.showMainWindow,
+    settings.hotkeys.toggleOverlay,
+    settings.overlay.enabled,
+    windowLabel,
+  ]);
+
+  useEffect(() => {
+    if (windowLabel !== "main") {
+      return;
+    }
+
+    const timers = new WeakMap<Element, number>();
+    const listeners = new WeakMap<Element, EventListener>();
+    const watched = new Set<Element>();
+
+    const markScrolling = (element: Element) => {
+      element.setAttribute("data-scrolling", "true");
+
+      const existingTimer = timers.get(element);
+      if (existingTimer) {
+        window.clearTimeout(existingTimer);
+      }
+
+      timers.set(
+        element,
+        window.setTimeout(() => {
+          element.removeAttribute("data-scrolling");
+          timers.delete(element);
+        }, 700),
+      );
+    };
+
+    const bindScrollbars = () => {
+      document.querySelectorAll(".theme-scrollbar").forEach((element) => {
+        if (watched.has(element)) {
+          return;
+        }
+
+        watched.add(element);
+        const listener = () => markScrolling(element);
+        listeners.set(element, listener);
+        element.addEventListener("scroll", listener, {
+          passive: true,
+        });
+      });
+    };
+
+    bindScrollbars();
+
+    const observer = new MutationObserver(bindScrollbars);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      watched.forEach((element) => {
+        const timer = timers.get(element);
+        if (timer) {
+          window.clearTimeout(timer);
+        }
+
+        element.removeAttribute("data-scrolling");
+        const listener = listeners.get(element);
+        if (listener) {
+          element.removeEventListener("scroll", listener);
+        }
+      });
+    };
+  }, [windowLabel]);
+
+  const events = useMemo(
+    () => generateEventInstances(now, settings),
+    [
+      now,
+      settings.display.localTimeZone,
+      settings.display.timeFormat,
+      enabledEventsKey,
+    ],
+  );
+  const overlayEvents = useMemo(
+    () => events.slice(0, settings.overlay.maxEvents),
+    [events, settings.overlay.maxEvents],
+  );
+
+  if (!windowLabel) {
+    return null;
+  }
+
+  if (windowLabel === "overlay") {
+    return <Overlay events={overlayEvents} settings={settings} />;
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+    <TooltipProvider>
+      <SidebarProvider>
+        <AppSidebar
+          activePage={activePage}
+          selectedDate={selectedDate}
+          settings={settings}
+          planner={planner}
+          onPageChange={setActivePage}
+          onSelectedDateChange={setSelectedDate}
+          onThemeChange={(theme) => setSettings({ ...settings, theme })}
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+        <SidebarInset className="h-svh min-h-0 overflow-hidden">
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background/90 px-4 shadow-[0_1px_2px_color-mix(in_oklch,var(--foreground)_6%,transparent)]">
+              <SidebarTrigger />
+              <div className="text-sm font-medium text-muted-foreground">
+                {pageTitle(activePage)}
+              </div>
+            </div>
+            <div className="theme-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+              <PageContent
+                activePage={activePage}
+                now={now}
+                selectedDate={selectedDate}
+                events={events}
+                planner={planner}
+                settings={settings}
+                hotkeyError={hotkeyError}
+                onPlannerChange={setPlanner}
+                onSettingsChange={setSettings}
+                onToggleOverlay={() => void toggleOverlay(settings)}
+              />
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   );
+}
+
+function PageContent({
+  activePage,
+  now,
+  selectedDate,
+  events,
+  planner,
+  settings,
+  hotkeyError,
+  onPlannerChange,
+  onSettingsChange,
+  onToggleOverlay,
+}: {
+  activePage: AppPage;
+  now: Date;
+  selectedDate: Date;
+  events: EventInstance[];
+  planner: PlannerState;
+  settings: AppSettings;
+  hotkeyError: string;
+  onPlannerChange: (planner: PlannerState) => void;
+  onSettingsChange: (settings: AppSettings) => void;
+  onToggleOverlay: () => void;
+}) {
+  if (activePage === "overview") {
+    return (
+      <OverviewPage
+        now={now}
+        events={events}
+        planner={planner}
+        settings={settings}
+        onToggleOverlay={onToggleOverlay}
+      />
+    );
+  }
+
+  if (activePage === "calendar") {
+    return <CalendarPage selectedDate={selectedDate} planner={planner} />;
+  }
+
+  if (activePage === "goals") {
+    return <GoalsPage planner={planner} onPlannerChange={onPlannerChange} />;
+  }
+
+  if (activePage === "collection") {
+    return (
+      <CollectionPage planner={planner} onPlannerChange={onPlannerChange} />
+    );
+  }
+
+  if (activePage === "overlay") {
+    return (
+      <OverlaySettingsPage
+        settings={settings}
+        events={events}
+        onSettingsChange={onSettingsChange}
+      />
+    );
+  }
+
+  if (activePage === "settings") {
+    return (
+      <SettingsPage
+        settings={settings}
+        hotkeyError={hotkeyError}
+        onSettingsChange={onSettingsChange}
+      />
+    );
+  }
+
+  return (
+    <PageHeader
+      title="Not Found"
+      description="The selected page is not available."
+    />
+  );
+}
+
+function pageTitle(page: AppPage) {
+  const titles: Record<AppPage, string> = {
+    overview: "Overview",
+    calendar: "Calendar",
+    goals: "Goals",
+    collection: "Collection",
+    overlay: "Overlay",
+    settings: "Settings",
+  };
+
+  return titles[page];
 }
 
 export default App;
