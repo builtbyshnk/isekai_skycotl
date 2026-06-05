@@ -158,6 +158,22 @@ body {
   overflow: hidden;
 }
 
+html[data-app-hardened="true"],
+html[data-app-hardened="true"] body,
+html[data-app-hardened="true"] #root {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html[data-app-hardened="true"] input,
+html[data-app-hardened="true"] textarea,
+html[data-app-hardened="true"] select,
+html[data-app-hardened="true"] [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 body[data-window-label="overlay"],
 body[data-window-label="overlay"] #root {
   background: transparent;
@@ -167,8 +183,40 @@ body[data-window-label="overlay"] #root {
 
 .overlay-shell {
   -webkit-user-select: none;
+  opacity: 0;
   user-select: none;
+  transition:
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 180ms ease,
+    background-color 180ms ease;
   will-change: opacity, transform;
+}
+
+.overlay-shell[data-visible="true"] {
+  opacity: 1;
+}
+
+.overlay-event-row {
+  transition:
+    border-radius 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.overlay-shell[data-animated="true"] .overlay-event-row {
+  animation: overlay-row-in 140ms ease-out both;
+}
+
+@keyframes overlay-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .theme-scrollbar {

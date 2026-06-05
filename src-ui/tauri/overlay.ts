@@ -1,11 +1,37 @@
 import { register, unregisterAll } from "@tauri-apps/plugin-global-shortcut";
+import { emitTo } from "@tauri-apps/api/event";
 import {
   getAllWindows,
   getCurrentWindow,
   LogicalPosition,
+  LogicalSize,
   primaryMonitor,
 } from "@tauri-apps/api/window";
 import type { AppSettings } from "@/domain/types";
+
+const OVERLAY_WIDTH = 360;
+const OVERLAY_HEADER_HEIGHT = 58;
+const OVERLAY_ROW_HEIGHT = 76;
+const OVERLAY_ROW_GAP = 8;
+const OVERLAY_MARGIN = 24;
+const OVERLAY_EXIT_MS = 180;
+
+function clampOverlayRows(settings: AppSettings) {
+  return Math.min(8, Math.max(3, settings.overlay.maxEvents));
+}
+
+function overlaySize(settings: AppSettings) {
+  const rows = clampOverlayRows(settings);
+  const height =
+    OVERLAY_HEADER_HEIGHT +
+    rows * OVERLAY_ROW_HEIGHT +
+    Math.max(0, rows - 1) * OVERLAY_ROW_GAP;
+
+  return {
+    width: Math.ceil(OVERLAY_WIDTH * settings.overlay.scale),
+    height: Math.ceil(height * settings.overlay.scale),
+  };
+}
 
 export function isTauriRuntime(): boolean {
   return "__TAURI_INTERNALS__" in window;
@@ -30,6 +56,8 @@ export async function configureOverlayWindow(settings: AppSettings) {
   }
 
   await current.setIgnoreCursorEvents(settings.overlay.clickThrough);
+  const size = overlaySize(settings);
+  await current.setSize(new LogicalSize(size.width, size.height));
   await positionOverlay(settings);
 }
 
@@ -45,9 +73,7 @@ export async function positionOverlay(settings: AppSettings) {
     return;
   }
 
-  const margin = 24;
-  const width = 360 * settings.overlay.scale;
-  const height = 420 * settings.overlay.scale;
+  const size = overlaySize(settings);
   const workArea = monitor.workArea;
   const left = workArea.position.x;
   const top = workArea.position.y;
@@ -57,13 +83,13 @@ export async function positionOverlay(settings: AppSettings) {
   const x =
     settings.overlay.position === "top-left" ||
     settings.overlay.position === "bottom-left"
-      ? left + margin
-      : right - width - margin;
+      ? left + OVERLAY_MARGIN
+      : right - size.width - OVERLAY_MARGIN;
   const y =
     settings.overlay.position === "bottom-left" ||
     settings.overlay.position === "bottom-right"
-      ? bottom - height - margin
-      : top + margin;
+      ? bottom - size.height - OVERLAY_MARGIN
+      : top + OVERLAY_MARGIN;
 
   await overlay.setPosition(new LogicalPosition(Math.round(x), Math.round(y)));
 }
@@ -81,12 +107,15 @@ export async function toggleOverlay(settings: AppSettings) {
 
   const visible = await overlay.isVisible();
   if (visible) {
+    await emitTo("overlay", "sky-overlay-visibility", false);
+    await new Promise((resolve) => window.setTimeout(resolve, OVERLAY_EXIT_MS));
     await overlay.hide();
     return;
   }
 
   await positionOverlay(settings);
   await overlay.show();
+  await emitTo("overlay", "sky-overlay-visibility", true);
 }
 
 export async function showMainWindow() {

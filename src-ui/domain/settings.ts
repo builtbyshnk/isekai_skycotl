@@ -21,6 +21,14 @@ function isValidTimeZone(timeZone: string | undefined) {
   }
 }
 
+function clampNumber(value: number | undefined, min: number, max: number, fallback: number) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, value));
+}
+
 export const EVENT_DEFINITIONS: EventDefinition[] = [
   {
     id: "daily-reset",
@@ -104,6 +112,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     opacity: 0.92,
     scale: 1,
     maxEvents: 5,
+    cornerRadius: 0,
     clickThrough: true,
   },
   hotkeys: {
@@ -135,10 +144,18 @@ export function mergeSettings(stored: Partial<AppSettings> | null): AppSettings 
     display.localTimeZone = detectLocalTimeZone();
   }
 
+  const overlay = { ...DEFAULT_SETTINGS.overlay, ...stored.overlay };
+
   return {
     theme: stored.theme ?? DEFAULT_SETTINGS.theme,
     appearance: { ...DEFAULT_SETTINGS.appearance, ...stored.appearance },
-    overlay: { ...DEFAULT_SETTINGS.overlay, ...stored.overlay },
+    overlay: {
+      ...overlay,
+      opacity: clampNumber(overlay.opacity, 0.2, 1, DEFAULT_SETTINGS.overlay.opacity),
+      maxEvents: Math.round(
+        clampNumber(overlay.maxEvents, 3, 8, DEFAULT_SETTINGS.overlay.maxEvents),
+      ),
+    },
     hotkeys: { ...DEFAULT_SETTINGS.hotkeys, ...stored.hotkeys },
     events: { ...DEFAULT_SETTINGS.events, ...stored.events },
     display,

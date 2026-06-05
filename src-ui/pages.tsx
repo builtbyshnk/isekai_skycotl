@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type * as React from "react";
+import { listen } from "@tauri-apps/api/event";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   CircleCheck,
   Clock,
@@ -49,6 +52,7 @@ import {
 import type { AppSettings, EventInstance } from "@/domain/types";
 import type { SkyCalendarEntry, SkyItemSummary } from "@/data/skygame";
 import { formatBytes, type AppUpdateState } from "@/tauri/updater";
+import { isTauriRuntime } from "@/tauri/overlay";
 
 type SkyDataModule = typeof import("@/data/skygame");
 
@@ -61,6 +65,16 @@ const COMMON_TIME_ZONES = [
   "Asia/Calcutta",
   "Asia/Tokyo",
   "Australia/Sydney",
+];
+
+const OVERLAY_POSITION_OPTIONS: Array<{
+  value: AppSettings["overlay"]["position"];
+  label: string;
+}> = [
+  { value: "top-right", label: "Top right" },
+  { value: "bottom-right", label: "Bottom right" },
+  { value: "top-left", label: "Top left" },
+  { value: "bottom-left", label: "Bottom left" },
 ];
 
 function getTimeZoneOptions(selectedTimeZone: string) {
@@ -145,22 +159,19 @@ export function PageHeader({
 export function OverviewPage({
   now,
   events,
-  planner,
   settings,
   onToggleOverlay,
 }: {
   now: Date;
   events: EventInstance[];
-  planner: PlannerState;
   settings: AppSettings;
   onToggleOverlay: () => void;
 }) {
   const skyData = useSkyData({ defer: true });
   const skyClock = skyNow(now);
-  const active = events.filter(
-    (event) => event.status === "active" || event.status === "endingSoon",
-  );
   const upcoming = events.find((event) => event.status === "upcoming");
+  const dailyReset = events.find((event) => event.definitionId === "daily-reset");
+  const edenReset = events.find((event) => event.definitionId === "eden-reset");
   const nextSeasonal = useMemo(
     () =>
       skyData
@@ -204,14 +215,14 @@ export function OverviewPage({
               icon={<Clock />}
             />
             <MetricCard
-              title="Active Events"
-              value={active.length.toString()}
-              icon={<TriangleAlert />}
+              title="Daily Candle Reset"
+              value={dailyReset ? formatDuration(dailyReset.countdownMs) : "--"}
+              icon={<Clock />}
             />
             <MetricCard
-              title="Open Goals"
-              value={planner.goals.filter((goal) => goal.status !== "done").length.toString()}
-              icon={<CircleCheck />}
+              title="Weekly Eden Reset"
+              value={edenReset ? formatDuration(edenReset.countdownMs) : "--"}
+              icon={<Clock />}
             />
           </div>
           <Card>
@@ -534,10 +545,33 @@ export function OverlaySettingsPage({
                 onSettingsChange({ ...settings, overlay: { ...settings.overlay, clickThrough } })
               }
             />
+            <div className="grid gap-2">
+              <Label htmlFor="overlay-position">Position</Label>
+              <Select
+                value={settings.overlay.position}
+                onValueChange={(position: AppSettings["overlay"]["position"]) =>
+                  onSettingsChange({
+                    ...settings,
+                    overlay: { ...settings.overlay, position },
+                  })
+                }
+              >
+                <SelectTrigger id="overlay-position" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OVERLAY_POSITION_OPTIONS.map((position) => (
+                    <SelectItem key={position.value} value={position.value}>
+                      {position.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <SliderSetting
               label="Opacity"
               value={settings.overlay.opacity}
-              min={0.4}
+              min={0.2}
               max={1}
               step={0.01}
               display={`${Math.round(settings.overlay.opacity * 100)}%`}
@@ -565,6 +599,20 @@ export function OverlaySettingsPage({
               display={settings.overlay.maxEvents.toString()}
               onValueChange={(maxEvents) =>
                 onSettingsChange({ ...settings, overlay: { ...settings.overlay, maxEvents } })
+              }
+            />
+            <SliderSetting
+              label="Corner radius"
+              value={settings.overlay.cornerRadius}
+              min={0}
+              max={32}
+              step={1}
+              display={`${settings.overlay.cornerRadius}px`}
+              onValueChange={(cornerRadius) =>
+                onSettingsChange({
+                  ...settings,
+                  overlay: { ...settings.overlay, cornerRadius },
+                })
               }
             />
           </CardContent>
@@ -782,6 +830,17 @@ export function UpdatesPage({
       : updateState.downloadedBytes
         ? formatBytes(updateState.downloadedBytes)
         : "";
+  const changelogTitle =
+    updateState.status === "available"
+      ? `Changelog for ${updateState.latestVersion}`
+      : `Changelog for ${updateState.currentVersion || "current version"}`;
+  const changelogEmpty =
+    updateState.status === "current"
+      ? "No changelog was found for the installed version."
+      : "No release notes loaded.";
+  const publishedLabel = updateState.releaseDate
+    ? new Date(updateState.releaseDate).toLocaleString()
+    : "Not available";
 
   return (
     <>
@@ -810,18 +869,18 @@ export function UpdatesPage({
           </div>
         }
       />
-      <div className="grid gap-4 p-5 xl:grid-cols-[1fr_340px]">
+      <div className="grid min-w-0 gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <UpdateStatusIcon status={updateState.status} />
               {updateStatusTitle(updateState)}
             </CardTitle>
-            <CardDescription>
-              Current version {updateState.currentVersion || "unknown"}
-              {updateState.latestVersion
-                ? ` / Latest version ${updateState.latestVersion}`
-                : null}
+            <CardDescription className="flex min-w-0 flex-wrap gap-x-2 gap-y-1">
+              <span>Current {updateState.currentVersion || "unknown"}</span>
+              {updateState.latestVersion ? (
+                <span>Latest {updateState.latestVersion}</span>
+              ) : null}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -879,45 +938,52 @@ export function UpdatesPage({
               </div>
             ) : null}
             <div className="grid gap-2">
-              <h2 className="text-sm font-semibold">Changelog</h2>
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <h2 className="min-w-0 text-sm font-semibold">{changelogTitle}</h2>
+                {updateState.status === "current" ? (
+                  <Badge variant="secondary" className="rounded-sm">
+                    Installed
+                  </Badge>
+                ) : null}
+              </div>
               <div className="theme-scrollbar max-h-[420px] overflow-auto rounded-md border border-border bg-card/70 p-3 text-sm text-muted-foreground">
                 {updateState.releaseNotes ? (
-                  <pre className="whitespace-pre-wrap font-sans">
-                    {updateState.releaseNotes}
-                  </pre>
+                  <MarkdownChangelog content={updateState.releaseNotes} />
                 ) : (
-                  <p>No release notes loaded.</p>
+                  <p>{changelogEmpty}</p>
                 )}
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
-            <CardTitle className="text-base">Release Channel</CardTitle>
-            <CardDescription>
-              GitHub latest release asset: latest.json
-            </CardDescription>
+            <CardTitle className="text-base">Update Details</CardTitle>
+            <CardDescription>Simple status for this installed app.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 text-sm text-muted-foreground">
-            <InfoRow label="Repository" value="radcolor/sky_cotl_clock" />
+          <CardContent className="grid min-w-0 gap-3 text-sm text-muted-foreground">
             <InfoRow
-              label="Endpoint"
-              value="github.com/radcolor/sky_cotl_clock/releases/latest"
+              label="Installed version"
+              value={updateState.currentVersion || "Checking..."}
             />
             <InfoRow
-              label="Published"
-              value={
-                updateState.releaseDate
-                  ? new Date(updateState.releaseDate).toLocaleString()
-                  : "Not available"
-              }
+              label="Newest version"
+              value={updateState.latestVersion || updateState.currentVersion || "Checking..."}
             />
-            <Separator />
-            <p>
-              Windows installs use Tauri's passive installer mode and signed
-              MSI/EXE updater artifacts from the release.
-            </p>
+            <InfoRow label="Release date" value={publishedLabel} />
+            <Separator className="my-1" />
+            <div className="rounded-md border border-border/70 bg-muted/20 p-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                {updateState.status === "available"
+                  ? "Ready when you are"
+                  : "Nothing to do right now"}
+              </h3>
+              <p className="mt-1 text-sm leading-5">
+                {updateState.status === "available"
+                  ? "Download and install the update from this page. The app will guide the process."
+                  : "The app checks for updates when it opens. You can also check again manually."}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -928,54 +994,103 @@ export function UpdatesPage({
 export function Overlay({
   events,
   settings,
+  animated = false,
 }: {
   events: EventInstance[];
   settings: AppSettings;
+  animated?: boolean;
 }) {
+  const [visible, setVisible] = useState(!animated);
+  const visibleEvents = useMemo(
+    () => events.slice(0, settings.overlay.maxEvents),
+    [events, settings.overlay.maxEvents],
+  );
+  const transformOrigin = settings.overlay.position.includes("bottom")
+    ? settings.overlay.position.includes("left")
+      ? "bottom left"
+      : "bottom right"
+    : settings.overlay.position.includes("left")
+      ? "top left"
+      : "top right";
+  const rowRadius = Math.max(0, Math.min(settings.overlay.cornerRadius - 6, 18));
+
+  useEffect(() => {
+    if (!animated) {
+      setVisible(true);
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => setVisible(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [animated]);
+
+  useEffect(() => {
+    if (!animated || !isTauriRuntime()) {
+      return;
+    }
+
+    const unlistenPromise = listen<boolean>(
+      "sky-overlay-visibility",
+      (event) => setVisible(event.payload),
+    );
+
+    return () => {
+      void unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, []);
+
   return (
     <section
-      className="overlay-shell w-full max-w-[360px] border border-white/10 bg-background/[0.88] p-3 text-foreground shadow-lg"
+      data-visible={visible}
+      data-animated={animated}
+      className="overlay-shell flex max-h-svh w-full max-w-[360px] flex-col overflow-hidden border border-white/10 p-3 text-foreground shadow-lg"
       style={{
-        opacity: settings.overlay.opacity,
-        transform: `scale(${settings.overlay.scale})`,
-        transformOrigin: "top right",
+        background: `color-mix(in oklch, var(--background) ${Math.round(
+          settings.overlay.opacity * 100,
+        )}%, transparent)`,
+        borderRadius: `${settings.overlay.cornerRadius}px`,
+        transform: `scale(${settings.overlay.scale}) translateY(${visible ? 0 : 8}px)`,
+        transformOrigin,
       }}
     >
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Clock className="size-4 text-primary" />
-          <span className="text-sm font-semibold">Sky Clock</span>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="mb-2 flex shrink-0 items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Clock className="size-4 text-primary" />
+            <span className="text-sm font-semibold">Sky Clock</span>
+          </div>
+          <Badge variant="secondary" className="text-[10px]">
+            {settings.hotkeys.toggleOverlay}
+          </Badge>
         </div>
-        <Badge variant="secondary" className="text-[10px]">
-          {settings.hotkeys.toggleOverlay}
-        </Badge>
-      </div>
-      <div className="grid gap-2">
-        {events.slice(0, settings.overlay.maxEvents).map((event) => (
-          <div
-            key={`${event.definitionId}-${event.startsAtUtc}`}
-            className="grid gap-1 border border-border/70 bg-card/80 p-2"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium leading-5">{event.title}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {[event.location, event.phaseLabel].filter(Boolean).join(" - ")}
+        <div className="theme-scrollbar grid min-h-0 flex-1 gap-2 overflow-y-auto">
+          {visibleEvents.map((event) => (
+            <div
+              key={`${event.definitionId}-${event.startsAtUtc}`}
+              className="overlay-event-row grid gap-1 overflow-hidden border border-border/70 bg-card/80 p-2"
+              style={{ borderRadius: `${rowRadius}px` }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium leading-5">{event.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {[event.location, event.phaseLabel].filter(Boolean).join(" - ")}
+                  </p>
+                </div>
+                <StatusBadge status={event.status} />
+              </div>
+              <div className="flex items-end justify-between gap-2">
+                <p className="text-lg font-semibold tabular-nums leading-none">
+                  {formatDuration(event.countdownMs)}
+                </p>
+                <p className="text-right text-[11px] text-muted-foreground">
+                  {settings.display.showLocalTime ? event.localTimeLabel : null}
+                  {settings.display.showSkyTime ? ` / ${event.skyTimeLabel}` : null}
                 </p>
               </div>
-              <StatusBadge status={event.status} />
             </div>
-            <div className="flex items-end justify-between gap-2">
-              <p className="text-lg font-semibold tabular-nums leading-none">
-                {formatDuration(event.countdownMs)}
-              </p>
-              <p className="text-right text-[11px] text-muted-foreground">
-                {settings.display.showLocalTime ? event.localTimeLabel : null}
-                {settings.display.showSkyTime ? ` / ${event.skyTimeLabel}` : null}
-              </p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1023,12 +1138,93 @@ function updateStatusTitle(updateState: AppUpdateState) {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid gap-1">
-      <span className="text-xs font-medium uppercase text-muted-foreground/70">
+    <div className="grid min-w-0 gap-1 rounded-md border border-border/70 bg-muted/20 p-2.5">
+      <span className="text-[0.68rem] font-semibold uppercase tracking-normal text-muted-foreground/70">
         {label}
       </span>
-      <span className="break-words text-foreground">{value}</span>
+      <span className="min-w-0 break-words text-foreground">{value}</span>
     </div>
+  );
+}
+
+function MarkdownChangelog({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        h1: ({ children }) => (
+          <h1 className="mb-3 text-lg font-semibold text-foreground">{children}</h1>
+        ),
+        h2: ({ children }) => (
+          <h2 className="mb-2 mt-4 text-base font-semibold text-foreground first:mt-0">
+            {children}
+          </h2>
+        ),
+        h3: ({ children }) => (
+          <h3 className="mb-2 mt-3 text-sm font-semibold text-foreground">
+            {children}
+          </h3>
+        ),
+        p: ({ children }) => (
+          <p className="my-2 leading-6 text-muted-foreground">{children}</p>
+        ),
+        ul: ({ children }) => (
+          <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>
+        ),
+        li: ({ children }) => <li className="leading-6">{children}</li>,
+        a: ({ children, href }) => (
+          <a
+            className="break-words font-medium text-primary underline-offset-4 hover:underline"
+            href={href}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {children}
+          </a>
+        ),
+        code: ({ children, className }) => {
+          const isBlock = className?.includes("language-");
+          if (isBlock) {
+            return (
+              <code className="block overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs text-foreground">
+                {children}
+              </code>
+            );
+          }
+
+          return (
+            <code className="rounded-sm bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
+              {children}
+            </code>
+          );
+        },
+        pre: ({ children }) => <pre className="my-3 overflow-x-auto">{children}</pre>,
+        blockquote: ({ children }) => (
+          <blockquote className="my-3 border-l-2 border-primary/50 pl-3 text-muted-foreground">
+            {children}
+          </blockquote>
+        ),
+        hr: () => <Separator className="my-4" />,
+        table: ({ children }) => (
+          <div className="my-3 overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs">{children}</table>
+          </div>
+        ),
+        th: ({ children }) => (
+          <th className="border border-border bg-muted p-2 font-semibold text-foreground">
+            {children}
+          </th>
+        ),
+        td: ({ children }) => (
+          <td className="border border-border p-2 align-top">{children}</td>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
   );
 }
 
@@ -1044,7 +1240,8 @@ function OverlayPreview({
       <CardHeader>
         <CardTitle className="text-base">Overlay Preview</CardTitle>
         <CardDescription>
-          {settings.overlay.maxEvents} rows at {Math.round(settings.overlay.opacity * 100)}% opacity.
+          {settings.overlay.maxEvents} rows at {Math.round(settings.overlay.opacity * 100)}% opacity,
+          {` ${settings.overlay.cornerRadius}px`} radius.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -67,6 +67,7 @@ export interface AppSettings {
     opacity: number;
     scale: number;
     maxEvents: number;
+    cornerRadius: number;
     clickThrough: boolean;
   };
   hotkeys: {

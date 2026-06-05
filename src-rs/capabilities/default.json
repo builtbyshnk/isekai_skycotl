@@ -9,6 +9,7 @@
     "core:window:allow-hide",
     "core:window:allow-set-focus",
     "core:window:allow-set-position",
+    "core:window:allow-set-size",
     "core:window:allow-set-ignore-cursor-events",
     "core:window:allow-theme",
     "core:app:allow-set-app-theme",

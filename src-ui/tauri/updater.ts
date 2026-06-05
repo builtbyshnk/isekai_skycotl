@@ -39,6 +39,45 @@ export const initialUpdateState: AppUpdateState = {
 
 export type UpdateStatePatch = Partial<AppUpdateState>;
 
+interface GitHubRelease {
+  body?: string | null;
+  published_at?: string | null;
+}
+
+async function fetchReleaseNotesForVersion(version: string) {
+  const releaseTags = [`v${version}`];
+
+  for (const tag of releaseTags) {
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/radcolor/sky_cotl_clock/releases/tags/${encodeURIComponent(tag)}`,
+        {
+          headers: {
+            Accept: "application/vnd.github+json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const release = (await response.json()) as GitHubRelease;
+      return {
+        releaseDate: release.published_at ?? null,
+        releaseNotes: release.body?.trim() || "",
+      };
+    } catch {
+      continue;
+    }
+  }
+
+  return {
+    releaseDate: null,
+    releaseNotes: "",
+  };
+}
+
 export async function checkForAppUpdate(
   setState: (patch: UpdateStatePatch) => void,
 ): Promise<Update | null> {
@@ -59,12 +98,13 @@ export async function checkForAppUpdate(
     ]);
 
     if (!update) {
+      const currentRelease = await fetchReleaseNotesForVersion(currentVersion);
       setState({
         status: "current",
         currentVersion,
         latestVersion: null,
-        releaseDate: null,
-        releaseNotes: "",
+        releaseDate: currentRelease.releaseDate,
+        releaseNotes: currentRelease.releaseNotes,
       });
       return null;
     }
