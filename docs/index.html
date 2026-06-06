@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Isekai - Sky Clock and Planner</title>
+    <meta
+      name="description"
+      content="Isekai is an unofficial desktop Sky: Children of the Light clock and planner with event countdowns, local goals, collection tracking, and an overlay."
+    />
+    <meta property="og:title" content="Isekai - Sky Clock and Planner" />
+    <meta
+      property="og:description"
+      content="A fast Windows-first desktop companion for Sky timers, planning, and quick overlay access."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="assets/sky-avatar-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="cursor-light" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Isekai home">
+        <img src="assets/sky-avatar-icon.png" alt="" />
+        <span>Isekai</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy" data-reveal>
+          <p class="eyebrow">Unofficial Sky: Children of the Light desktop companion</p>
+          <h1>Isekai</h1>
+          <p class="hero-text">
+            Keep Sky timers, goals, collection plans, and an always-near overlay in a small local app built for Windows.
+          </p>
+          <div class="hero-actions" aria-label="Download actions">
+            <a id="downloadButton" class="button primary magnet" href="https://github.com/radcolor/sky_cotl_clock/releases/latest">
+              <span>Download latest version</span>
+            </a>
+            <a class="button secondary magnet" href="https://github.com/radcolor/sky_cotl_clock">
+              <span>View source</span>
+            </a>
+          </div>
+          <div class="release-card" aria-live="polite">
+            <span class="pulse-dot"></span>
+            <p id="releaseStatus">Checking the latest release...</p>
+          </div>
+        </div>
+
+        <div class="product-shot" aria-label="Isekai app preview" data-reveal>
+          <div class="app-window">
+            <div class="window-bar">
+              <div class="window-dots" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span class="window-title">Isekai desktop preview</span>
+            </div>
+            <img
+              src="https://raw.githubusercontent.com/radcolor/sky_cotl_clock/main/assets/product-demo.gif"
+              alt="Isekai desktop app demo"
+            />
+          </div>
+          <div class="preview-metrics" aria-label="App highlights">
+            <div>
+              <span>Next event</span>
+              <strong>5m 10s</strong>
+            </div>
+            <div>
+              <span>Overlay</span>
+              <strong>Hotkey ready</strong>
+            </div>
+            <div>
+              <span>Data</span>
+              <strong>Stored locally</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="quick-points" aria-label="Highlights">
+        <div data-reveal>
+          <span class="mini-icon">01</span>
+          <strong>Sky-time aware</strong>
+          <span>Tracks recurring schedules with America/Los_Angeles timing.</span>
+        </div>
+        <div data-reveal>
+          <span class="mini-icon">02</span>
+          <strong>Local first</strong>
+          <span>Planner state, goals, wishlist, and settings stay on your device.</span>
+        </div>
+        <div data-reveal>
+          <span class="mini-icon">03</span>
+          <strong>Lightweight</strong>
+          <span>Built with Tauri, Rust, and React for a fast desktop feel.</span>
+        </div>
+      </section>
+
+      <section id="features" class="section">
+        <div class="section-heading" data-reveal>
+          <p class="eyebrow">Features</p>
+          <h2>Everything nearby while you play</h2>
+        </div>
+
+        <div class="feature-tabs" role="tablist" aria-label="Feature categories" data-reveal>
+          <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab="timers">Timers</button>
+          <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="planning">Planning</button>
+          <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="desktop">Desktop</button>
+        </div>
+
+        <div class="feature-grid">
+          <article data-category="timers" data-reveal>
+            <span class="card-kicker">Time</span>
+            <h3>Event countdowns</h3>
+            <p>Track recurring Sky events and reset-aware timers from a dedicated desktop dashboard.</p>
+          </article>
+          <article data-category="desktop" data-reveal>
+            <span class="card-kicker">Overlay</span>
+            <h3>Overlay window</h3>
+            <p>Keep important timers visible in a passive transparent overlay with global hotkey toggles.</p>
+          </article>
+          <article data-category="planning" data-reveal>
+            <span class="card-kicker">Goals</span>
+            <h3>Planner tools</h3>
+            <p>Save goals, wishlist progress, and collection plans locally without signing into anything.</p>
+          </article>
+          <article data-category="desktop" data-reveal>
+            <span class="card-kicker">Theme</span>
+            <h3>Flexible themes</h3>
+            <p>Use light, dark, or system theme mode so the app fits your desktop setup.</p>
+          </article>
+          <article data-category="planning" data-reveal>
+            <span class="card-kicker">Offline</span>
+            <h3>Offline-friendly</h3>
+            <p>Use timers, saved settings, and planner data without depending on a live website.</p>
+          </article>
+          <article data-category="desktop" data-reveal>
+            <span class="card-kicker">Release</span>
+            <h3>Auto-update ready</h3>
+            <p>Updater support keeps future releases simpler once you have the app installed.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="privacy" class="privacy-band">
+        <div data-reveal>
+          <p class="eyebrow">Privacy</p>
+          <h2>No Sky login. No game modification.</h2>
+        </div>
+        <div class="privacy-copy" data-reveal>
+          <p>
+            Isekai is a separate fan-made utility. It does not connect to your Sky account, read game data, modify the
+            game, or need personal telemetry to work.
+          </p>
+          <div class="trust-row" aria-label="Privacy checks">
+            <span>Local data</span>
+            <span>No credentials</span>
+            <span>Open source</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" class="section faq">
+        <div class="section-heading" data-reveal>
+          <p class="eyebrow">FAQ</p>
+          <h2>Quick answers</h2>
+        </div>
+        <div class="faq-list" data-reveal>
+          <details open>
+            <summary>Is Isekai official?</summary>
+            <p>No. It is an unofficial fan-made project. Sky: Children of the Light belongs to thatgamecompany.</p>
+          </details>
+          <details>
+            <summary>Does it work without internet?</summary>
+            <p>Most app features are local, including event calculations, planner data, themes, and saved settings.</p>
+          </details>
+          <details>
+            <summary>Where should I download it?</summary>
+            <p>Use the download button on this page or the official GitHub releases page for this repository.</p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Isekai v<span id="packageVersion">0.1.3</span></span>
+      <span>Unofficial fan project for Sky players.</span>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
