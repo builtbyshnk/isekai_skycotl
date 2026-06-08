@@ -191,14 +191,16 @@ function ThemeTabs({
             role="radio"
             aria-checked={selected}
             className={cn(
-              "flex h-8 min-w-0 items-center justify-center gap-1 rounded-sm px-1.5 text-[0.68rem] font-semibold leading-none text-sidebar-foreground/70 transition-colors hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/50",
+              "grid min-h-8 min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center justify-center gap-1 rounded-sm px-1.5 py-1 text-[0.66rem] font-semibold leading-tight text-sidebar-foreground/70 transition-colors hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/50",
               selected &&
                 "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm hover:text-sidebar-primary-foreground",
             )}
             onClick={() => onValueChange(theme.id)}
           >
             <theme.icon className="size-3.5 shrink-0" />
-            <span className="truncate">{theme.title}</span>
+            <span className="min-w-0 truncate whitespace-nowrap text-center">
+              {theme.title}
+            </span>
           </button>
         );
       })}

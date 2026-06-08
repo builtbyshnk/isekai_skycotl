@@ -155,7 +155,17 @@ body,
 
 body {
   margin: 0;
+  font-family: var(--font-sans);
   overflow: hidden;
+}
+
+[data-sonner-toaster],
+[data-sonner-toaster] [data-sonner-toast],
+[data-sonner-toaster] [data-title],
+[data-sonner-toaster] [data-description],
+[data-sonner-toaster] [data-button],
+[data-sonner-toaster] [data-cancel] {
+  font-family: var(--font-sans) !important;
 }
 
 body[data-window-label="main"] {
