@@ -833,8 +833,8 @@ export function OverlaySettingsPage({
             />
             <Separator />
             <SettingSwitch
-              label="Auto-show when Sky starts"
-              description="Detect the Sky process at the OS level and show the overlay after the launch delay."
+              label="Enable game detection"
+              description="Watch for Sky at the OS process and foreground-window level."
               checked={settings.overlay.gameDetection.enabled}
               onCheckedChange={(enabled) =>
                 onSettingsChange({
@@ -844,6 +844,24 @@ export function OverlaySettingsPage({
                     gameDetection: {
                       ...settings.overlay.gameDetection,
                       enabled,
+                    },
+                  },
+                })
+              }
+            />
+            <SettingSwitch
+              label="Show overlay when Sky starts"
+              description="Wait for the game splash and startup screens, then show the overlay once per launch."
+              checked={settings.overlay.gameDetection.showOverlayOnStart}
+              disabled={!settings.overlay.gameDetection.enabled}
+              onCheckedChange={(showOverlayOnStart) =>
+                onSettingsChange({
+                  ...settings,
+                  overlay: {
+                    ...settings.overlay,
+                    gameDetection: {
+                      ...settings.overlay.gameDetection,
+                      showOverlayOnStart,
                     },
                   },
                 })
@@ -869,11 +887,48 @@ export function OverlaySettingsPage({
                 })
               }
             />
+            <SettingSwitch
+              label="Hide overlay when Sky exits"
+              description="Hide the overlay after the Sky process stops."
+              checked={settings.overlay.gameDetection.hideOverlayOnExit}
+              disabled={!settings.overlay.gameDetection.enabled}
+              onCheckedChange={(hideOverlayOnExit) =>
+                onSettingsChange({
+                  ...settings,
+                  overlay: {
+                    ...settings.overlay,
+                    gameDetection: {
+                      ...settings.overlay.gameDetection,
+                      hideOverlayOnExit,
+                    },
+                  },
+                })
+              }
+            />
+            <SettingSwitch
+              label="Show controls when Sky loses focus"
+              description="Bring Isekai forward once when Sky is still running but no longer the foreground window."
+              checked={settings.overlay.gameDetection.showMainWhenGameBlurred}
+              disabled={!settings.overlay.gameDetection.enabled}
+              onCheckedChange={(showMainWhenGameBlurred) =>
+                onSettingsChange({
+                  ...settings,
+                  overlay: {
+                    ...settings.overlay,
+                    gameDetection: {
+                      ...settings.overlay.gameDetection,
+                      showMainWhenGameBlurred,
+                    },
+                  },
+                })
+              }
+            />
             <div className="rounded-md border border-border/70 bg-muted/25 p-3 text-xs text-muted-foreground">
               Detection checks process names only:{" "}
               {settings.overlay.gameDetection.processNames.join(", ")}. It does
-              not read game memory, inject code, inspect network traffic, or
-              automate input.
+              not read game memory, inspect network traffic, modify files,
+              inject code, or automate input. Turn game detection off for no
+              presence behavior.
             </div>
             <Separator />
             <div className="grid gap-2">
@@ -2829,22 +2884,33 @@ function SettingSwitch({
   label,
   description,
   checked,
+  disabled,
   onCheckedChange,
 }: {
   label: string;
   description?: string;
   checked: boolean;
+  disabled?: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div
+      className={cn(
+        "flex items-center justify-between gap-4",
+        disabled && "opacity-60",
+      )}
+    >
       <div className="min-w-0">
         <Label>{label}</Label>
         {description ? (
           <p className="mt-1 text-xs text-muted-foreground">{description}</p>
         ) : null}
       </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+      <Switch
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+      />
     </div>
   );
 }

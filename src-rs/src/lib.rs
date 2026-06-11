@@ -6,15 +6,7 @@ use tauri::{
 
 #[tauri::command]
 fn is_process_running(process_names: Vec<String>) -> Result<bool, String> {
-    if process_names.is_empty() {
-        return Ok(false);
-    }
-
-    let normalized_names = process_names
-        .into_iter()
-        .map(|name| name.trim().trim_matches('"').to_ascii_lowercase())
-        .filter(|name| !name.is_empty())
-        .collect::<Vec<_>>();
+    let normalized_names = normalize_process_names(process_names);
 
     if normalized_names.is_empty() {
         return Ok(false);
@@ -23,11 +15,23 @@ fn is_process_running(process_names: Vec<String>) -> Result<bool, String> {
     let processes = process_list()?;
 
     Ok(processes.into_iter().any(|process| {
-        let process = process.to_ascii_lowercase();
-        normalized_names
-            .iter()
-            .any(|name| process == *name || process == strip_exe(name))
+        process_matches(&process, &normalized_names)
     }))
+}
+
+#[tauri::command]
+fn is_process_foreground(process_names: Vec<String>) -> Result<bool, String> {
+    let normalized_names = normalize_process_names(process_names);
+
+    if normalized_names.is_empty() {
+        return Ok(false);
+    }
+
+    let Some(process) = foreground_process_name()? else {
+        return Ok(false);
+    };
+
+    Ok(process_matches(&process, &normalized_names))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -83,7 +87,10 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![is_process_running])
+        .invoke_handler(tauri::generate_handler![
+            is_process_running,
+            is_process_foreground
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -97,6 +104,26 @@ fn show_main_window(app: &tauri::AppHandle) {
 
 fn strip_exe(name: &str) -> &str {
     name.strip_suffix(".exe").unwrap_or(name)
+}
+
+fn normalize_process_names(process_names: Vec<String>) -> Vec<String> {
+    process_names
+        .into_iter()
+        .map(|name| name.trim().trim_matches('"').to_ascii_lowercase())
+        .filter(|name| !name.is_empty())
+        .collect()
+}
+
+fn process_matches(process: &str, normalized_names: &[String]) -> bool {
+    let process = process
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or(process)
+        .to_ascii_lowercase();
+
+    normalized_names
+        .iter()
+        .any(|name| process == name.as_str() || process == strip_exe(name))
 }
 
 #[cfg(target_os = "windows")]
@@ -119,14 +146,83 @@ fn process_list() -> Result<Vec<String>, String> {
         .collect())
 }
 
+#[cfg(target_os = "windows")]
+fn foreground_process_name() -> Result<Option<String>, String> {
+    let script = r#"
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public class Win32Foreground {
+  [DllImport("user32.dll")]
+  public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")]
+  public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+}
+'@
+$handle = [Win32Foreground]::GetForegroundWindow()
+$processId = 0
+[void][Win32Foreground]::GetWindowThreadProcessId($handle, [ref]$processId)
+if ($processId -gt 0) {
+  try { (Get-Process -Id $processId).ProcessName } catch {}
+}
+"#;
+    let output = std::process::Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command", script])
+        .output()
+        .map_err(|error| format!("failed to inspect foreground window: {error}"))?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+
+    let process = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok((!process.is_empty()).then_some(process))
+}
+
 #[cfg(target_os = "macos")]
 fn process_list() -> Result<Vec<String>, String> {
     unix_process_list()
 }
 
+#[cfg(target_os = "macos")]
+fn foreground_process_name() -> Result<Option<String>, String> {
+    let output = std::process::Command::new("osascript")
+        .args([
+            "-e",
+            "tell application \"System Events\" to get name of first application process whose frontmost is true",
+        ])
+        .output()
+        .map_err(|error| format!("failed to inspect foreground app: {error}"))?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+
+    let process = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok((!process.is_empty()).then_some(process))
+}
+
 #[cfg(target_os = "linux")]
 fn process_list() -> Result<Vec<String>, String> {
     unix_process_list()
+}
+
+#[cfg(target_os = "linux")]
+fn foreground_process_name() -> Result<Option<String>, String> {
+    let output = std::process::Command::new("sh")
+        .args([
+            "-c",
+            "command -v xdotool >/dev/null 2>&1 && xdotool getactivewindow getwindowpid 2>/dev/null | xargs -r ps -p 2>/dev/null -o comm= || true",
+        ])
+        .output()
+        .map_err(|error| format!("failed to inspect foreground app: {error}"))?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+
+    let process = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok((!process.is_empty()).then_some(process))
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -153,4 +249,9 @@ fn unix_process_list() -> Result<Vec<String>, String> {
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn process_list() -> Result<Vec<String>, String> {
     Ok(Vec::new())
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+fn foreground_process_name() -> Result<Option<String>, String> {
+    Ok(None)
 }

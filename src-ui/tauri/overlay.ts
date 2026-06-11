@@ -173,6 +173,18 @@ export async function showOverlay(settings: AppSettings) {
   await emitTo("overlay", "sky-overlay-visibility", true);
 }
 
+export async function hideOverlay() {
+  const overlay = await findWindow("overlay");
+
+  if (!overlay || !(await overlay.isVisible())) {
+    return;
+  }
+
+  await emitTo("overlay", "sky-overlay-visibility", false);
+  await new Promise((resolve) => window.setTimeout(resolve, OVERLAY_EXIT_MS));
+  await overlay.hide();
+}
+
 export async function showMainWindow() {
   const main = await findWindow("main");
 

@@ -32,12 +32,17 @@ import { skyDataIndex } from "@/data/skygame";
 import {
   configureOverlayWindow,
   getWindowLabel,
+  hideOverlay,
   isTauriRuntime,
   registerAppHotkeys,
+  showMainWindow,
   showOverlay,
   toggleOverlay,
 } from "@/tauri/overlay";
-import { isGameProcessRunning } from "@/tauri/game-detection";
+import {
+  isGameProcessForeground,
+  isGameProcessRunning,
+} from "@/tauri/game-detection";
 import {
   CalendarPage,
   CollectionPage,
@@ -177,6 +182,7 @@ function App() {
   const gamePresence = useRef({
     running: false,
     overlayShownForLaunch: false,
+    mainShownForBlur: false,
     showTimer: 0,
   });
   const enabledEventsKey = useMemo(
@@ -427,16 +433,22 @@ function App() {
       }
       state.running = false;
       state.overlayShownForLaunch = false;
+      state.mainShownForBlur = false;
       return;
     }
 
     let cancelled = false;
     const state = gamePresence.current;
     const processNames = settings.overlay.gameDetection.processNames;
-    const delayMs = settings.overlay.gameDetection.startupDelayMs;
+    const detection = settings.overlay.gameDetection;
+    const delayMs = detection.startupDelayMs;
 
     const scheduleOverlay = () => {
-      if (state.overlayShownForLaunch || state.showTimer) {
+      if (
+        !detection.showOverlayOnStart ||
+        state.overlayShownForLaunch ||
+        state.showTimer
+      ) {
         return;
       }
 
@@ -467,14 +479,34 @@ function App() {
           state.running = true;
         }
         scheduleOverlay();
+
+        if (detection.showMainWhenGameBlurred) {
+          const foreground = await isGameProcessForeground(processNames).catch(
+            () => true,
+          );
+          if (cancelled) {
+            return;
+          }
+
+          if (foreground) {
+            state.mainShownForBlur = false;
+          } else if (!state.mainShownForBlur) {
+            await showMainWindow();
+            state.mainShownForBlur = true;
+          }
+        }
       }
 
       if (!running && state.running) {
         state.running = false;
         state.overlayShownForLaunch = false;
+        state.mainShownForBlur = false;
         if (state.showTimer) {
           window.clearTimeout(state.showTimer);
           state.showTimer = 0;
+        }
+        if (detection.hideOverlayOnExit) {
+          await hideOverlay();
         }
       }
     };
@@ -493,7 +525,10 @@ function App() {
   }, [
     settings.overlay.enabled,
     settings.overlay.gameDetection.enabled,
+    settings.overlay.gameDetection.hideOverlayOnExit,
     settings.overlay.gameDetection.processNames,
+    settings.overlay.gameDetection.showMainWhenGameBlurred,
+    settings.overlay.gameDetection.showOverlayOnStart,
     settings.overlay.gameDetection.startupDelayMs,
     windowLabel,
   ]);

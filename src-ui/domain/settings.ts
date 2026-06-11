@@ -122,6 +122,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
     enabled: true,
     gameDetection: {
       enabled: false,
+      showOverlayOnStart: true,
+      hideOverlayOnExit: true,
+      showMainWhenGameBlurred: false,
       startupDelayMs: 3_000,
       processNames: SKY_PROCESS_NAMES,
     },

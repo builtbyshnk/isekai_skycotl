@@ -175,16 +175,16 @@ visit is active.
 ## Phase 10: Game Presence Integration
 
 - [x] Detect whether the Sky process or game window is running on desktop.
-- [ ] Auto-show or auto-hide the overlay based on Sky presence and user settings.
-- [ ] Add settings for presence behavior:
-  - [ ] Do nothing
+- [x] Auto-show or auto-hide the overlay based on Sky presence and user settings.
+- [x] Add settings for presence behavior:
+  - [x] Do nothing
   - [x] Show overlay when Sky starts
-  - [ ] Hide overlay when Sky exits
-  - [ ] Bring Isekai controls forward when Sky is not focused
-- [ ] Avoid any integration that reads game memory, intercepts network traffic,
+  - [x] Hide overlay when Sky exits
+  - [x] Bring Isekai controls forward when Sky is not focused
+- [x] Avoid any integration that reads game memory, intercepts network traffic,
   modifies game files, injects into the process, or automates gameplay.
 - [x] Keep all presence detection at the OS/window/process level only.
-- [ ] Add a visible safety note in settings explaining the passive integration
+- [x] Add a visible safety note in settings explaining the passive integration
   boundary.
 
 Acceptance: Isekai can behave like a companion app that wakes up around Sky
