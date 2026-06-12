@@ -22,6 +22,7 @@ import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sideb
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { DEFAULT_SETTINGS, mergeSettings } from "@/domain/settings";
 import { generateEventInstances } from "@/domain/events";
 import {
@@ -931,6 +932,7 @@ function PageTransition({
 
 function AppTitlebar({ activePage }: { activePage: AppPage }) {
   const { toggleSidebar } = useSidebar();
+  const isMac = navigator.userAgent.includes("Mac");
   const safeWindowAction = (
     action: (windowControls: ReturnType<typeof getCurrentWindow>) => Promise<void>,
   ) => {
@@ -949,7 +951,12 @@ function AppTitlebar({ activePage }: { activePage: AppPage }) {
       >
         <div
           data-tauri-drag-region
-          className="flex h-full w-(--sidebar-width-icon) shrink-0 items-center justify-center border-r border-sidebar-border"
+          className={cn(
+            "app-titlebar-leading flex h-full shrink-0 items-center border-r border-sidebar-border",
+            isMac
+              ? "w-[calc(var(--sidebar-width-icon)+6.75rem)] justify-end pr-4"
+              : "w-(--sidebar-width-icon) justify-center",
+          )}
         >
           <button
             type="button"
@@ -963,7 +970,7 @@ function AppTitlebar({ activePage }: { activePage: AppPage }) {
         </div>
         <div
           data-tauri-drag-region
-          className="flex h-full min-w-0 flex-1 items-center gap-2 px-4"
+          className="flex h-full min-w-0 flex-1 items-center gap-3 px-4"
         >
           <span
             data-tauri-drag-region
@@ -987,33 +994,35 @@ function AppTitlebar({ activePage }: { activePage: AppPage }) {
           />
         </div>
       </div>
-      <div className="flex h-full shrink-0 items-center">
-        <TitlebarWindowButton
-          label="Minimize"
-          onClick={() =>
-            safeWindowAction((windowControls) => windowControls.minimize())
-          }
-        >
-          <Minus />
-        </TitlebarWindowButton>
-        <TitlebarWindowButton
-          label="Maximize"
-          onClick={() =>
-            safeWindowAction((windowControls) => windowControls.toggleMaximize())
-          }
-        >
-          <Square />
-        </TitlebarWindowButton>
-        <TitlebarWindowButton
-          label="Close"
-          danger
-          onClick={() =>
-            safeWindowAction((windowControls) => windowControls.close())
-          }
-        >
-          <X />
-        </TitlebarWindowButton>
-      </div>
+      {!isMac ? (
+        <div className="flex h-full shrink-0 items-center">
+          <TitlebarWindowButton
+            label="Minimize"
+            onClick={() =>
+              safeWindowAction((windowControls) => windowControls.minimize())
+            }
+          >
+            <Minus />
+          </TitlebarWindowButton>
+          <TitlebarWindowButton
+            label="Maximize"
+            onClick={() =>
+              safeWindowAction((windowControls) => windowControls.toggleMaximize())
+            }
+          >
+            <Square />
+          </TitlebarWindowButton>
+          <TitlebarWindowButton
+            label="Close"
+            danger
+            onClick={() =>
+              safeWindowAction((windowControls) => windowControls.close())
+            }
+          >
+            <X />
+          </TitlebarWindowButton>
+        </div>
+      ) : null}
     </div>
   );
 }
