@@ -109,28 +109,36 @@ jobs:
           node <<'NODE'
           const fs = require("fs");
 
-          const body = process.env.RELEASE_BODY?.trim();
-          const description = body && body.length > 0
-            ? body.slice(0, 3900)
-            : "A new Isekai app update is available.";
+          const version = process.env.RELEASE_TAG || process.env.RELEASE_NAME || "latest";
+          const body = process.env.RELEASE_BODY?.trim() || "See the GitHub release page for details.";
+          const maxBodyLength = 1500;
+          const changelog = body.length > maxBodyLength
+            ? `${body.slice(0, maxBodyLength).trim()}\n\n...`
+            : body;
 
           const payload = {
             username: "Isekai Releases",
-            content: `New Isekai app update is here: ${process.env.RELEASE_URL}`,
+            content: [
+              `## New Isekai ${version} available`,
+              "",
+              "**What's new:**",
+              changelog,
+              "",
+              `[View GitHub release](${process.env.RELEASE_URL})`
+            ].join("\n"),
+            flags: 4,
             allowed_mentions: {
               parse: []
             },
-            embeds: [
+            components: [
               {
-                title: `${process.env.RELEASE_NAME || process.env.RELEASE_TAG} is here`,
-                url: process.env.RELEASE_URL,
-                description,
-                color: process.env.RELEASE_PRERELEASE === "true" ? 16763904 : 5814783,
-                fields: [
+                type: 1,
+                components: [
                   {
-                    name: "Version",
-                    value: process.env.RELEASE_TAG,
-                    inline: true
+                    type: 2,
+                    style: 5,
+                    label: "Download Isekai",
+                    url: "https://radcolor.github.io/sky_cotl_clock/"
                   }
                 ]
               }
@@ -143,4 +151,4 @@ jobs:
           curl --fail \
             -H "Content-Type: application/json" \
             -d @discord-payload.json \
-            "$DISCORD_WEBHOOK_URL"
+            "${DISCORD_WEBHOOK_URL}?with_components=true"
