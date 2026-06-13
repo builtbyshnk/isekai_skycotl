@@ -109,6 +109,7 @@ jobs:
           node <<'NODE'
           const fs = require("fs");
 
+          const version = process.env.RELEASE_TAG || process.env.RELEASE_NAME || "latest";
           const body = process.env.RELEASE_BODY?.trim() || "See the GitHub release page for details.";
           const maxBodyLength = 1500;
           const changelog = body.length > maxBodyLength
@@ -134,7 +135,7 @@ jobs:
                   {
                     type: 2,
                     style: 5,
-                    label: "Download Isekai",
+                    label: `Download Isekai ${version}`,
                     url: "https://radcolor.github.io/sky_cotl_clock/"
                   }
                 ]
