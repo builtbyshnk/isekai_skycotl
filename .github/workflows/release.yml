@@ -3,6 +3,11 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      buildOnly:
+        description: "Build macOS and Windows installers without creating or uploading release assets"
+        required: false
+        type: boolean
+        default: false
       notifyDiscordOnly:
         description: "Send Discord notification for latest GitHub Release without building"
         required: false
@@ -58,7 +63,17 @@ jobs:
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build Tauri bundle only
+        if: github.event_name == 'workflow_dispatch' && inputs.buildOnly == true
+        run: >
+          bun run tauri build
+          ${{ matrix.tauriArgs }}
+          --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          --ci
+          --no-sign
+
       - name: Build and publish Tauri release
+        if: github.event_name != 'workflow_dispatch' || inputs.buildOnly != true
         uses: tauri-apps/tauri-action@v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
