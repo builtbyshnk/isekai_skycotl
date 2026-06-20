@@ -32,9 +32,10 @@ jobs:
           - name: Windows MSI
             os: windows-latest
             tauriArgs: --bundles msi
-          - name: macOS DMG
-            os: macos-latest
-            tauriArgs: --target universal-apple-darwin --bundles dmg
+          # macOS DMG disabled until signing/notarization is configured.
+          # - name: macOS DMG
+          #   os: macos-latest
+          #   tauriArgs: --target universal-apple-darwin --bundles dmg
 
     permissions:
       contents: write
@@ -93,27 +94,39 @@ jobs:
 
   notify-discord:
     name: Notify Discord
-    if: (github.event_name == 'release' && github.event.action == 'published') || (github.event_name == 'workflow_dispatch' && inputs.notifyDiscordOnly == true)
+    needs: release
+    if: |
+      always() && (
+        ((github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.buildOnly != true && inputs.notifyDiscordOnly != true)) && needs.release.result == 'success') ||
+        (github.event_name == 'release' && github.event.action == 'published') ||
+        (github.event_name == 'workflow_dispatch' && inputs.notifyDiscordOnly == true)
+      )
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
 
     steps:
-      - name: Get latest release for manual test
-        if: github.event_name == 'workflow_dispatch'
+      - name: Get release details
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > latest-release.json
+          if [ "${{ github.event_name }}" = "push" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" > release.json
+          else
+            gh api "repos/$GITHUB_REPOSITORY/releases/latest" > release.json
+          fi
+
           {
-            echo "RELEASE_NAME=$(jq -r '.name // .tag_name' latest-release.json)"
-            echo "RELEASE_TAG=$(jq -r '.tag_name' latest-release.json)"
-            echo "RELEASE_URL=$(jq -r '.html_url' latest-release.json)"
-            echo "RELEASE_PRERELEASE=$(jq -r '.prerelease' latest-release.json)"
+            echo "RELEASE_NAME=$(jq -r '.name // .tag_name' release.json)"
+            echo "RELEASE_TAG=$(jq -r '.tag_name' release.json)"
+            echo "RELEASE_URL=$(jq -r '.html_url' release.json)"
+            echo "RELEASE_PRERELEASE=$(jq -r '.prerelease' release.json)"
             echo "RELEASE_BODY<<EOF"
-            jq -r '.body // ""' latest-release.json
+            jq -r '.body // ""' release.json
             echo "EOF"
           } >> "$GITHUB_ENV"
 
