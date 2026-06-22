@@ -11,6 +11,8 @@ The app is Windows-first and includes:
 - Light, dark, and system theme modes
 - Local planner storage for goals and wishlist state
 
+Source: https://github.com/radcolor-dev/sky_cotl_clock
+
 ## Product Demo
 
 <div align="center">

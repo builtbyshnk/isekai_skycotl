@@ -3,7 +3,7 @@ import type { PlannerState } from "./planner";
 import { countCandleGroupWax, skyDataIndex } from "@/data/skygame";
 
 export const ISEKAI_DISCORD_URL =
-  "https://github.com/radcolor/sky_cotl_clock";
+  "https://github.com/radcolor-dev/sky_cotl_clock";
 export const SKY_DISCORD_URL = "https://www.thatskygame.com/";
 
 export interface DiscordRpcButtonPayload {

@@ -1,4 +1,4 @@
-const repo = "radcolor/sky_cotl_clock";
+const repo = "radcolor-dev/sky_cotl_clock";
 const releasesUrl = `https://github.com/${repo}/releases/latest`;
 const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
 const currentVersion = "0.1.6";
