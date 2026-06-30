@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       buildOnly:
-        description: "Build macOS and Windows installers without creating or uploading release assets"
+        description: "Build Windows, macOS, and Linux installers without creating or uploading release assets"
         required: false
         type: boolean
         default: false
@@ -32,10 +32,12 @@ jobs:
           - name: Windows MSI
             os: windows-latest
             tauriArgs: --bundles msi
-          # macOS DMG disabled until signing/notarization is configured.
-          # - name: macOS DMG
-          #   os: macos-latest
-          #   tauriArgs: --target universal-apple-darwin --bundles dmg
+          - name: macOS DMG
+            os: macos-latest
+            tauriArgs: --target universal-apple-darwin --bundles dmg --no-sign
+          - name: Linux AppImage
+            os: ubuntu-latest
+            tauriArgs: --bundles appimage
 
     permissions:
       contents: write
@@ -55,6 +57,22 @@ jobs:
       - name: Install macOS Rust targets
         if: runner.os == 'macOS'
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
 
       - name: Cache Rust
         uses: swatinem/rust-cache@v2
