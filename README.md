@@ -69,8 +69,8 @@ Build the package for your operating system:
 # Windows
 bun run tauri build --bundles msi
 
-# macOS
-bun run tauri build --target universal-apple-darwin --bundles dmg --no-sign
+# macOS Apple Silicon
+bun run tauri build --target aarch64-apple-darwin --bundles dmg --no-sign
 
 # Linux
 bun run tauri build --bundles appimage

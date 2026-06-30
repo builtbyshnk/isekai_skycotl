@@ -34,7 +34,7 @@ jobs:
             tauriArgs: --bundles msi
           - name: macOS DMG
             os: macos-latest
-            tauriArgs: --target universal-apple-darwin --bundles dmg --no-sign
+            tauriArgs: --target aarch64-apple-darwin --bundles dmg --no-sign
           - name: Linux AppImage
             os: ubuntu-latest
             tauriArgs: --bundles appimage
@@ -56,7 +56,7 @@ jobs:
 
       - name: Install macOS Rust targets
         if: runner.os == 'macOS'
-        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+        run: rustup target add aarch64-apple-darwin
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
