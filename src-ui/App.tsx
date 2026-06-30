@@ -24,7 +24,10 @@ import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DEFAULT_SETTINGS, mergeSettings } from "@/domain/settings";
-import { generateEventInstances } from "@/domain/events";
+import {
+  generateEventInstances as generateEventInstancesFallback,
+  getOverlayEvents as getOverlayEventsFallback,
+} from "@/domain/events";
 import {
   buildDiscordRpcPresence,
   type DiscordRpcPresencePayload,
@@ -50,6 +53,10 @@ import {
   showOverlay,
   toggleOverlay,
 } from "@/tauri/overlay";
+import {
+  generateEventInstances as generateEventInstancesFromTauri,
+  getOverlayEvents as getOverlayEventsFromTauri,
+} from "@/tauri/events";
 import { isGameProcessRunning } from "@/tauri/game-detection";
 import {
   CalendarPage,
@@ -193,6 +200,12 @@ function App() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("appearance");
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [now, setNow] = useState(() => new Date());
+  const [events, setEvents] = useState<EventInstance[]>(() =>
+    generateEventInstancesFallback(now, settings),
+  );
+  const [overlayEvents, setOverlayEvents] = useState<EventInstance[]>(() =>
+    getOverlayEventsFallback(now, settings),
+  );
   const [windowLabel, setWindowLabel] = useState<string | null>(null);
   const [hotkeyError, setHotkeyError] = useState("");
   const [updateState, setUpdateState] = useState<AppUpdateState>(initialUpdateState);
@@ -217,10 +230,6 @@ function App() {
     checking: false,
   });
   const discordRpcSessionStartedAt = useRef(Date.now());
-  const enabledEventsKey = useMemo(
-    () => JSON.stringify(settings.events),
-    [settings.events],
-  );
 
   useEffect(() => {
     latestSettings.current = settings;
@@ -757,19 +766,36 @@ function App() {
     };
   }, [windowLabel]);
 
-  const events = useMemo(
-    () => generateEventInstances(now, settings),
-    [
-      now,
-      settings.display.localTimeZone,
-      settings.display.timeFormat,
-      enabledEventsKey,
-    ],
-  );
-  const overlayEvents = useMemo(
-    () => events.slice(0, settings.overlay.maxEvents),
-    [events, settings.overlay.maxEvents],
-  );
+  useEffect(() => {
+    let cancelled = false;
+    const fallbackEvents = generateEventInstancesFallback(now, settings);
+    const fallbackOverlayEvents = getOverlayEventsFallback(now, settings);
+
+    setEvents(fallbackEvents);
+    setOverlayEvents(fallbackOverlayEvents);
+
+    void Promise.all([
+      generateEventInstancesFromTauri(now, settings),
+      getOverlayEventsFromTauri(now, settings),
+    ])
+      .then(([nextEvents, nextOverlayEvents]) => {
+        if (!cancelled) {
+          setEvents(nextEvents);
+          setOverlayEvents(nextOverlayEvents);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.warn("Falling back to TypeScript event generation", error);
+          setEvents(fallbackEvents);
+          setOverlayEvents(fallbackOverlayEvents);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [now, settings]);
   const discordRpcPresence = useMemo(
     () =>
       buildDiscordRpcPresence({
