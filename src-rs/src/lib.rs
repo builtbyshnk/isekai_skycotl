@@ -2,6 +2,7 @@ use discord_rich_presence::{
     activity::{Activity, Assets, Button, Timestamps},
     DiscordIpc, DiscordIpcClient,
 };
+use domain::events::{EventGenerationSettings, EventInstance};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::{
@@ -126,6 +127,28 @@ fn discord_rpc_clear(
     Ok(manager.status(resolve_discord_client_id("").is_some()))
 }
 
+#[tauri::command]
+fn generate_event_instances(
+    now_ms: i64,
+    settings: EventGenerationSettings,
+) -> Result<Vec<EventInstance>, String> {
+    let now = chrono::DateTime::from_timestamp_millis(now_ms)
+        .ok_or_else(|| domain::DomainError::invalid_input("Invalid event timestamp"))?;
+
+    Ok(domain::events::generate_event_instances(now, &settings))
+}
+
+#[tauri::command]
+fn get_overlay_events(
+    now_ms: i64,
+    settings: EventGenerationSettings,
+) -> Result<Vec<EventInstance>, String> {
+    let now = chrono::DateTime::from_timestamp_millis(now_ms)
+        .ok_or_else(|| domain::DomainError::invalid_input("Invalid event timestamp"))?;
+
+    Ok(domain::events::get_overlay_events(now, &settings))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -193,6 +216,8 @@ pub fn run() {
             discord_rpc_status,
             discord_rpc_update,
             discord_rpc_clear,
+            generate_event_instances,
+            get_overlay_events,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
