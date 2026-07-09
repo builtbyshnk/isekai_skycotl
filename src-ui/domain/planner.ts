@@ -46,7 +46,7 @@ export interface PlannerState {
   };
 }
 
-export const PLANNER_STORAGE_KEY = "sky-cotl-clock-planner-v1";
+export const PLANNER_STORAGE_KEY = "isekai-skycotl-planner-v1";
 
 export const DEFAULT_ROUTE_FILTERS: Required<SkyRouteFilters> = {
   spirits: true,

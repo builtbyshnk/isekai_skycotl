@@ -91,8 +91,8 @@ import {
 import { listenNativeThemeChange, syncNativeTheme } from "@/tauri/theme";
 import { getLocaleDirection, useI18n, type MessageKey } from "@/i18n";
 
-const SETTINGS_KEY = "sky-cotl-clock-settings";
-const REMINDERS_KEY = "sky-cotl-clock-reminders";
+const SETTINGS_KEY = "isekai-skycotl-settings";
+const REMINDERS_KEY = "isekai-skycotl-reminders";
 const REMINDER_LEAD_MS = 10_000;
 const REMINDER_TRIGGER_WINDOW_MS = 1_500;
 

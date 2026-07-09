@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    devradcolorsky_cotl_clock_lib::run()
+    devradcolorisekai_skycotl_lib::run()
 }

@@ -1,4 +1,4 @@
-const repo = "builtbyshnk/sky_cotl_clock";
+const repo = "builtbyshnk/isekai_skycotl";
 const releasesUrl = `https://github.com/${repo}/releases/latest`;
 const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
 const currentVersion = "0.1.6";
