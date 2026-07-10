@@ -1,4 +1,6 @@
 import {
+  memo,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -24,10 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DEFAULT_SETTINGS, mergeSettings } from "@/domain/settings";
-import {
-  generateEventInstances as generateEventInstancesFallback,
-  getOverlayEvents as getOverlayEventsFallback,
-} from "@/domain/events";
+import { generateEventInstances as generateEventInstancesFallback } from "@/domain/events";
 import type { DiscordRpcPresencePayload } from "@/domain/discordRpc";
 import {
   deserializePlannerState,
@@ -49,10 +48,7 @@ import {
   showOverlay,
   toggleOverlay,
 } from "@/tauri/overlay";
-import {
-  generateEventInstances as generateEventInstancesFromTauri,
-  getOverlayEvents as getOverlayEventsFromTauri,
-} from "@/tauri/events";
+import { generateEventInstances as generateEventInstancesFromTauri } from "@/tauri/events";
 import {
   getSkyActiveRouteTarget,
   getSkyRouteTargets,
@@ -95,6 +91,16 @@ const SETTINGS_KEY = "isekai-skycotl-settings";
 const REMINDERS_KEY = "isekai-skycotl-reminders";
 const REMINDER_LEAD_MS = 10_000;
 const REMINDER_TRIGGER_WINDOW_MS = 1_500;
+
+const MemoizedAppSidebar = memo(AppSidebar);
+const MemoizedCalendarPage = memo(CalendarPage);
+const MemoizedCandleRunsPage = memo(CandleRunsPage);
+const MemoizedCollectionPage = memo(CollectionPage);
+const MemoizedDiscordRpcPage = memo(DiscordRpcPage);
+const MemoizedGoalsPage = memo(GoalsPage);
+const MemoizedRoutesPage = memo(RoutesPage);
+const MemoizedSettingsPage = memo(SettingsPage);
+const MemoizedUpdatesPage = memo(UpdatesPage);
 
 function readStoredSettings() {
   try {
@@ -202,10 +208,10 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [now, setNow] = useState(() => new Date());
   const [events, setEvents] = useState<EventInstance[]>(() =>
-    generateEventInstancesFallback(now, settings),
+    isTauriRuntime() ? [] : generateEventInstancesFallback(now, settings),
   );
   const [overlayEvents, setOverlayEvents] = useState<EventInstance[]>(() =>
-    getOverlayEventsFallback(now, settings),
+    events.slice(0, settings.overlay.maxEvents),
   );
   const [routeTargetCount, setRouteTargetCount] = useState(0);
   const [activeRouteTargetGuid, setActiveRouteTargetGuid] = useState<string | null>(null);
@@ -406,11 +412,6 @@ function App() {
       void unlistenPlannerPromise.then((unlisten) => unlisten());
     };
   }, [windowLabel]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     if (windowLabel !== "main") {
@@ -621,14 +622,15 @@ function App() {
     };
   }, [settings.discordRpc.clientId, windowLabel]);
 
-  const patchUpdateState = (patch: UpdateStatePatch) =>
+  const patchUpdateState = useCallback((patch: UpdateStatePatch) => {
     setUpdateState((current) => ({ ...current, ...patch }));
+  }, []);
 
-  const refreshUpdate = async () => {
+  const refreshUpdate = useCallback(async () => {
     pendingUpdate.current = await checkForAppUpdate(patchUpdateState);
-  };
+  }, [patchUpdateState]);
 
-  const installUpdate = async () => {
+  const installUpdate = useCallback(async () => {
     if (!pendingUpdate.current) {
       pendingUpdate.current = await checkForAppUpdate(patchUpdateState);
     }
@@ -636,7 +638,7 @@ function App() {
     if (pendingUpdate.current) {
       await installAppUpdate(pendingUpdate.current, patchUpdateState);
     }
-  };
+  }, [patchUpdateState]);
 
   useEffect(() => {
     if (windowLabel !== "main") {
@@ -644,7 +646,7 @@ function App() {
     }
 
     void refreshUpdate();
-  }, [windowLabel]);
+  }, [refreshUpdate, windowLabel]);
 
   useEffect(() => {
     if (windowLabel !== "main") {
@@ -711,34 +713,66 @@ function App() {
 
   useEffect(() => {
     let cancelled = false;
-    const fallbackEvents = generateEventInstancesFallback(now, settings);
-    const fallbackOverlayEvents = getOverlayEventsFallback(now, settings);
+    let refreshing = false;
 
-    setEvents(fallbackEvents);
-    setOverlayEvents(fallbackOverlayEvents);
+    const refreshEvents = async () => {
+      if (refreshing) {
+        return;
+      }
 
-    void Promise.all([
-      generateEventInstancesFromTauri(now, settings),
-      getOverlayEventsFromTauri(now, settings),
-    ])
-      .then(([nextEvents, nextOverlayEvents]) => {
+      refreshing = true;
+      const nextNow = new Date();
+
+      try {
+        const nextEvents = await generateEventInstancesFromTauri(nextNow, settings);
         if (!cancelled) {
+          setNow(nextNow);
           setEvents(nextEvents);
-          setOverlayEvents(nextOverlayEvents);
+          setOverlayEvents(nextEvents.slice(0, settings.overlay.maxEvents));
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         if (!cancelled) {
+          const fallbackEvents = generateEventInstancesFallback(nextNow, settings);
           console.warn("Falling back to TypeScript event generation", error);
+          setNow(nextNow);
           setEvents(fallbackEvents);
-          setOverlayEvents(fallbackOverlayEvents);
+          setOverlayEvents(
+            fallbackEvents.slice(0, settings.overlay.maxEvents),
+          );
         }
-      });
+      } finally {
+        refreshing = false;
+      }
+    };
+
+    void refreshEvents();
+    const timer = window.setInterval(() => void refreshEvents(), 1_000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
-  }, [now, settings]);
+  }, [settings]);
+
+  const discordRpcEventKey = useMemo(() => {
+    const event = events.find((candidate) =>
+      ["active", "preparing", "upcoming", "endingSoon"].includes(
+        candidate.status,
+      ),
+    );
+
+    return event
+      ? [
+          event.definitionId,
+          event.status,
+          event.startsAtUtc,
+          event.endsAtUtc,
+          event.location,
+          event.phaseLabel,
+        ].join("|")
+      : "";
+  }, [events]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -757,12 +791,8 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [events, planner, settings, skyProcessRunning]);
+  }, [discordRpcEventKey, planner, settings, skyProcessRunning]);
 
-  const discordRpcPresenceKey = useMemo(
-    () => JSON.stringify(discordRpcPresence),
-    [discordRpcPresence],
-  );
   const firedReminders = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -802,7 +832,6 @@ function App() {
     };
   }, [
     discordRpcPresence,
-    discordRpcPresenceKey,
     discordRpcStatus.configured,
     settings.discordRpc.clientId,
     windowLabel,
@@ -866,6 +895,14 @@ function App() {
     });
   };
 
+  const handleThemeChange = useCallback((theme: AppSettings["theme"]) => {
+    setSettings((current) => ({ ...current, theme }));
+  }, []);
+
+  const handleToggleOverlay = useCallback(() => {
+    void toggleOverlay(settings);
+  }, [settings]);
+
   const deliverReminder = async (event: EventInstance) => {
     const title = `${event.title} starts in 10 seconds`;
     const body = reminderBody(event);
@@ -911,9 +948,9 @@ function App() {
           className="min-h-0 flex-1 flex-col"
           style={{ "--sidebar-width": "17.5rem" } as CSSProperties}
         >
-          <AppTitlebar pageTitle={titlebarPageTitle} />
+          <MemoizedAppTitlebar pageTitle={titlebarPageTitle} />
           <div className="app-workspace flex min-h-0 flex-1">
-            <AppSidebar
+            <MemoizedAppSidebar
               activePage={activePage}
               selectedDate={selectedDate}
               settings={settings}
@@ -921,7 +958,7 @@ function App() {
               updateState={updateState}
               onPageChange={setActivePage}
               onSelectedDateChange={setSelectedDate}
-              onThemeChange={(theme) => setSettings({ ...settings, theme })}
+              onThemeChange={handleThemeChange}
             />
             <SidebarInset className="flex h-full min-h-0 overflow-hidden">
               <div className="theme-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
@@ -940,10 +977,10 @@ function App() {
                   reminders={reminders}
                   onPlannerChange={setPlanner}
                   onSettingsChange={setSettings}
-                  onToggleOverlay={() => void toggleOverlay(settings)}
-                  onToggleReminder={(event) => void toggleReminder(event)}
-                  onRefreshUpdate={() => void refreshUpdate()}
-                  onInstallUpdate={() => void installUpdate()}
+                  onToggleOverlay={handleToggleOverlay}
+                  onToggleReminder={toggleReminder}
+                  onRefreshUpdate={refreshUpdate}
+                  onInstallUpdate={installUpdate}
                   settingsTab={settingsTab}
                   onSettingsTabChange={setSettingsTab}
                 />
@@ -1143,6 +1180,8 @@ function AppTitlebar({ pageTitle }: { pageTitle: string }) {
   );
 }
 
+const MemoizedAppTitlebar = memo(AppTitlebar);
+
 function TitlebarWindowButton({
   label,
   danger,
@@ -1243,26 +1282,26 @@ function PageContent({
   }
 
   if (activePage === "calendar") {
-    return <CalendarPage selectedDate={selectedDate} planner={planner} />;
+    return <MemoizedCalendarPage selectedDate={selectedDate} planner={planner} />;
   }
 
   if (activePage === "routes") {
-    return <RoutesPage planner={planner} onPlannerChange={onPlannerChange} />;
+    return <MemoizedRoutesPage planner={planner} onPlannerChange={onPlannerChange} />;
   }
 
   if (activePage === "candle-runs") {
     return (
-      <CandleRunsPage planner={planner} onPlannerChange={onPlannerChange} />
+      <MemoizedCandleRunsPage planner={planner} onPlannerChange={onPlannerChange} />
     );
   }
 
   if (activePage === "goals") {
-    return <GoalsPage planner={planner} onPlannerChange={onPlannerChange} />;
+    return <MemoizedGoalsPage planner={planner} onPlannerChange={onPlannerChange} />;
   }
 
   if (activePage === "collection") {
     return (
-      <CollectionPage planner={planner} onPlannerChange={onPlannerChange} />
+      <MemoizedCollectionPage planner={planner} onPlannerChange={onPlannerChange} />
     );
   }
 
@@ -1279,7 +1318,7 @@ function PageContent({
 
   if (activePage === "discord-rpc") {
     return (
-      <DiscordRpcPage
+      <MemoizedDiscordRpcPage
         settings={settings}
         skyProcessRunning={skyProcessRunning}
         status={discordRpcStatus}
@@ -1291,7 +1330,7 @@ function PageContent({
 
   if (activePage === "settings") {
     return (
-      <SettingsPage
+      <MemoizedSettingsPage
         settings={settings}
         hotkeyError={hotkeyError}
         activeTab={settingsTab}
@@ -1303,7 +1342,7 @@ function PageContent({
 
   if (activePage === "updates") {
     return (
-      <UpdatesPage
+      <MemoizedUpdatesPage
         updateState={updateState}
         onRefresh={onRefreshUpdate}
         onInstall={onInstallUpdate}

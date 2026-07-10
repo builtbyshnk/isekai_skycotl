@@ -319,11 +319,14 @@ export function OverviewPage({
   const dailyReset = events.find((event) => event.definitionId === "daily-reset");
   const edenReset = events.find((event) => event.definitionId === "eden-reset");
   const [nextSeasonal, setNextSeasonal] = useState<SkyCalendarEntry[]>([]);
+  const seasonalDate = now.toISOString().slice(0, 10);
 
   useEffect(() => {
     let cancelled = false;
 
-    void getUpcomingSkySeasonalEntries(now).then((entries) => {
+    void getUpcomingSkySeasonalEntries(
+      new Date(`${seasonalDate}T00:00:00.000Z`),
+    ).then((entries) => {
       if (!cancelled) {
         setNextSeasonal(entries.slice(0, 4));
       }
@@ -332,7 +335,7 @@ export function OverviewPage({
     return () => {
       cancelled = true;
     };
-  }, [now]);
+  }, [seasonalDate]);
 
   return (
     <>

@@ -220,7 +220,6 @@ body[data-window-label="main"] .app-main-shell [data-slot="sidebar-container"] {
   flex: 1;
   flex-direction: column;
   animation: page-fade-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  will-change: opacity, transform;
 }
 
 .page-transition[data-exiting="true"] {
