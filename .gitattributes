@@ -1,0 +1,12 @@
+# Collapse in GitHub PR diffs and exclude from the language bar.
+*.css linguist-generated=true linguist-detectable=false
+*.html linguist-generated=true linguist-detectable=false
+*.js linguist-generated=true linguist-detectable=false
+*.mjs linguist-generated=true linguist-detectable=false
+*.cjs linguist-generated=true linguist-detectable=false
+*.jsx linguist-generated=true linguist-detectable=false
+
+docs/** linguist-generated=true linguist-detectable=false
+scripts/** linguist-generated=true linguist-detectable=false
+bun.lock linguist-detectable=false
+**/selected-data.json linguist-vendored
