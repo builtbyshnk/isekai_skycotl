@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type * as React from "react";
 import type { AnimationEvent } from "react";
 import { createPortal } from "react-dom";
@@ -20,6 +20,7 @@ import {
   Keyboard,
   Monitor,
   MoreHorizontal,
+  Minus,
   Palette,
   Plus,
   RefreshCw,
@@ -28,6 +29,7 @@ import {
   TriangleAlert,
   Upload,
   X,
+  ZoomIn,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -3493,24 +3495,66 @@ function CandleRunMapPreview({
   name: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [zoomed, setZoomed] = useState(false);
-  const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [drag, setDrag] = useState<{
+  const [scale, setScale] = useState(1);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const viewportRef = useRef<HTMLButtonElement>(null);
+  const viewRef = useRef({ scale: 1, x: 0, y: 0 });
+  const animationFrameRef = useRef<number | null>(null);
+  const dragRef = useRef<{
     pointerId: number;
     startX: number;
     startY: number;
-    panX: number;
-    panY: number;
+    viewX: number;
+    viewY: number;
     moved: boolean;
   } | null>(null);
   const [portalReady, setPortalReady] = useState(false);
 
+  function renderImageView() {
+    animationFrameRef.current = null;
+    const image = imageRef.current;
+    if (!image) {
+      return;
+    }
+
+    const view = viewRef.current;
+    image.style.transform = `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`;
+  }
+
+  function scheduleImageView() {
+    if (animationFrameRef.current === null) {
+      animationFrameRef.current = window.requestAnimationFrame(renderImageView);
+    }
+  }
+
+  function clampPan(nextScale: number, x: number, y: number) {
+    const image = imageRef.current;
+    const viewport = viewportRef.current;
+    if (!image || !viewport) {
+      return { x, y };
+    }
+
+    const maxX = Math.max(0, (image.offsetWidth * nextScale - viewport.clientWidth) / 2);
+    const maxY = Math.max(0, (image.offsetHeight * nextScale - viewport.clientHeight) / 2);
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y)),
+    };
+  }
+
+  function updateImageView(nextScale: number, x: number, y: number) {
+    const boundedScale = Math.max(1, Math.min(4, nextScale));
+    const boundedPan = clampPan(boundedScale, x, y);
+    viewRef.current = { scale: boundedScale, ...boundedPan };
+    setScale(boundedScale);
+    scheduleImageView();
+  }
+
   function resetImageView() {
-    setZoomed(false);
-    setZoomOrigin({ x: 50, y: 50 });
-    setPan({ x: 0, y: 0 });
-    setDrag(null);
+    viewRef.current = { scale: 1, x: 0, y: 0 };
+    dragRef.current = null;
+    setScale(1);
+    scheduleImageView();
   }
 
   function openMap() {
@@ -3523,47 +3567,55 @@ function CandleRunMapPreview({
     resetImageView();
   }
 
-  function toggleImageZoom(event: React.PointerEvent<HTMLButtonElement>) {
+  function zoomAt(clientX: number, clientY: number, nextScale: number) {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+
+    const current = viewRef.current;
+    const rect = viewport.getBoundingClientRect();
+    const pointerX = clientX - (rect.left + rect.width / 2);
+    const pointerY = clientY - (rect.top + rect.height / 2);
+    const ratio = nextScale / current.scale;
+    updateImageView(
+      nextScale,
+      pointerX - (pointerX - current.x) * ratio,
+      pointerY - (pointerY - current.y) * ratio,
+    );
+  }
+
+  function handleImageClick(event: React.MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
 
-    if (drag?.moved) {
-      setDrag(null);
+    if (dragRef.current?.moved) {
+      dragRef.current = null;
       return;
     }
 
-    if (zoomed) {
-      resetImageView();
-      return;
-    }
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    setZoomOrigin({
-      x: ((event.clientX - rect.left) / rect.width) * 100,
-      y: ((event.clientY - rect.top) / rect.height) * 100,
-    });
-    setPan({ x: 0, y: 0 });
-    setZoomed(true);
+    zoomAt(event.clientX, event.clientY, scale === 1 ? 2 : 1);
   }
 
   function startImageDrag(event: React.PointerEvent<HTMLButtonElement>) {
     event.stopPropagation();
 
-    if (!zoomed) {
+    if (viewRef.current.scale === 1 || event.button !== 0) {
       return;
     }
 
     event.currentTarget.setPointerCapture(event.pointerId);
-    setDrag({
+    dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      panX: pan.x,
-      panY: pan.y,
+      viewX: viewRef.current.x,
+      viewY: viewRef.current.y,
       moved: false,
-    });
+    };
   }
 
   function moveImageDrag(event: React.PointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) {
       return;
     }
@@ -3572,23 +3624,31 @@ function CandleRunMapPreview({
 
     const deltaX = event.clientX - drag.startX;
     const deltaY = event.clientY - drag.startY;
-    setDrag({
-      ...drag,
-      moved: drag.moved || Math.hypot(deltaX, deltaY) > 4,
-    });
-    setPan({
-      x: drag.panX + deltaX,
-      y: drag.panY + deltaY,
-    });
+    drag.moved ||= Math.hypot(deltaX, deltaY) > 4;
+    const boundedPan = clampPan(
+      viewRef.current.scale,
+      drag.viewX + deltaX,
+      drag.viewY + deltaY,
+    );
+    viewRef.current = { ...viewRef.current, ...boundedPan };
+    scheduleImageView();
   }
 
   function endImageDrag(event: React.PointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) {
       return;
     }
 
     event.stopPropagation();
     event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  function handleImageWheel(event: React.WheelEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const nextScale = viewRef.current.scale * Math.exp(-event.deltaY * 0.0015);
+    zoomAt(event.clientX, event.clientY, nextScale);
   }
 
   useEffect(() => {
@@ -3608,6 +3668,10 @@ function CandleRunMapPreview({
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
     };
   }, [open]);
 
@@ -3624,7 +3688,6 @@ function CandleRunMapPreview({
             aria-label={`${name} candle map`}
             className="fixed inset-0 z-50 flex h-svh w-svw touch-none items-center justify-center overflow-hidden bg-background/85 p-6 backdrop-blur-sm"
             onClick={closeMap}
-            onWheel={(event) => event.preventDefault()}
           >
             <Button
               type="button"
@@ -3640,33 +3703,60 @@ function CandleRunMapPreview({
             >
               <X />
             </Button>
+            <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-md border border-border bg-background/90 p-1 shadow-sm backdrop-blur-sm">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Zoom out"
+                disabled={scale <= 1}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  updateImageView(scale - 0.5, viewRef.current.x, viewRef.current.y);
+                }}
+              >
+                <Minus />
+              </Button>
+              <span className="min-w-12 text-center text-xs font-medium tabular-nums">
+                {Math.round(scale * 100)}%
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Zoom in"
+                disabled={scale >= 4}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  updateImageView(scale + 0.5, viewRef.current.x, viewRef.current.y);
+                }}
+              >
+                <ZoomIn />
+              </Button>
+            </div>
             <button
+              ref={viewportRef}
               type="button"
-              aria-label={zoomed ? "Show full map" : "Zoom map"}
+              aria-label={scale > 1 ? "Reset map zoom" : "Zoom map"}
               className={cn(
-                "flex max-h-[calc(100svh-3rem)] max-w-[calc(100svw-3rem)] items-center justify-center overflow-hidden outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
-                zoomed
+                "flex h-[calc(100svh-3rem)] w-[calc(100svw-3rem)] items-center justify-center overflow-hidden outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
+                scale > 1
                   ? "cursor-grab active:cursor-grabbing"
                   : "cursor-zoom-in",
               )}
-              onClick={toggleImageZoom}
+              onClick={handleImageClick}
               onPointerDown={startImageDrag}
               onPointerMove={moveImageDrag}
               onPointerUp={endImageDrag}
               onPointerCancel={endImageDrag}
+              onWheel={handleImageWheel}
             >
               <img
+                ref={imageRef}
                 src={imageUrl}
                 alt={`${name} candle map`}
-                className={cn(
-                  "max-h-[calc(100svh-3rem)] max-w-[calc(100svw-3rem)] object-contain drop-shadow-2xl transition-transform duration-200",
-                  zoomed && "scale-200",
-                )}
+                className="max-h-full max-w-full select-none object-contain drop-shadow-2xl will-change-transform"
                 draggable={false}
-                style={{
-                  transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
-                  translate: `${pan.x}px ${pan.y}px`,
-                }}
               />
             </button>
           </div>,

@@ -649,69 +649,6 @@ function App() {
   }, [refreshUpdate, windowLabel]);
 
   useEffect(() => {
-    if (windowLabel !== "main") {
-      return;
-    }
-
-    const timers = new WeakMap<Element, number>();
-    const listeners = new WeakMap<Element, EventListener>();
-    const watched = new Set<Element>();
-
-    const markScrolling = (element: Element) => {
-      element.setAttribute("data-scrolling", "true");
-
-      const existingTimer = timers.get(element);
-      if (existingTimer) {
-        window.clearTimeout(existingTimer);
-      }
-
-      timers.set(
-        element,
-        window.setTimeout(() => {
-          element.removeAttribute("data-scrolling");
-          timers.delete(element);
-        }, 700),
-      );
-    };
-
-    const bindScrollbars = () => {
-      document.querySelectorAll(".theme-scrollbar").forEach((element) => {
-        if (watched.has(element)) {
-          return;
-        }
-
-        watched.add(element);
-        const listener = () => markScrolling(element);
-        listeners.set(element, listener);
-        element.addEventListener("scroll", listener, {
-          passive: true,
-        });
-      });
-    };
-
-    bindScrollbars();
-
-    const observer = new MutationObserver(bindScrollbars);
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    return () => {
-      observer.disconnect();
-      watched.forEach((element) => {
-        const timer = timers.get(element);
-        if (timer) {
-          window.clearTimeout(timer);
-        }
-
-        element.removeAttribute("data-scrolling");
-        const listener = listeners.get(element);
-        if (listener) {
-          element.removeEventListener("scroll", listener);
-        }
-      });
-    };
-  }, [windowLabel]);
-
-  useEffect(() => {
     let cancelled = false;
     let refreshing = false;
 
