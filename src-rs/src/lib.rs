@@ -1,5 +1,5 @@
 use discord_rich_presence::{
-    activity::{Activity, Assets, Button, Timestamps},
+    activity::{Activity, ActivityType, Assets, Button, Timestamps},
     DiscordIpc, DiscordIpcClient,
 };
 use domain::events::{EventGenerationSettings, EventInstance};
@@ -23,10 +23,24 @@ use std::os::windows::process::CommandExt;
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-const DISCORD_CLIENT_ID: Option<&str> = option_env!("ISEKAI_DISCORD_CLIENT_ID");
-const ISEKAI_DISCORD_URL: &str = "https://github.com/builtbyshnk/isekai_skycotl";
-const SKY_DISCORD_URL: &str = "https://www.thatskygame.com/";
+const DISCORD_CLIENT_ID: Option<&str> = Some(match option_env!("ISEKAI_DISCORD_CLIENT_ID") {
+    Some(client_id) => client_id,
+    None => "1515376218478743613",
+});
+const DISCORD_ACTIVITY_NAME: &str = "Sky: COTL w/ Isekai";
+const ISEKAI_DISCORD_URL: &str = "https://builtbyshnk.github.io/isekai_skycotl/";
 const MAX_DISCORD_FIELD_LENGTH: usize = 128;
+
+#[cfg(target_os = "linux")]
+fn configure_linux_display_backend() {
+    if std::env::var_os("GDK_BACKEND").is_none()
+        && std::env::var_os("WAYLAND_DISPLAY").is_some()
+        && std::env::var_os("DISPLAY").is_some()
+    {
+        // Wayland does not allow absolute window positioning, which the overlay requires.
+        std::env::set_var("GDK_BACKEND", "x11,wayland");
+    }
+}
 
 #[cfg(not(debug_assertions))]
 fn prevent_default_shortcuts() -> tauri::plugin::TauriPlugin<tauri::Wry> {
@@ -186,10 +200,7 @@ fn build_discord_rpc_presence(payload: DiscordRpcBuildPayload) -> Option<Value> 
     let source = select_presence_source(&payload.settings, &payload.events, &payload.planner);
     let show_buttons = discord["showButtons"].as_bool() != Some(false);
     let buttons = if show_buttons {
-        json!([
-            { "label": "Isekai", "url": ISEKAI_DISCORD_URL },
-            { "label": "Sky", "url": SKY_DISCORD_URL }
-        ])
+        json!([{ "label": "Get Isekai ✨", "url": ISEKAI_DISCORD_URL }])
     } else {
         json!([])
     };
@@ -197,10 +208,10 @@ fn build_discord_rpc_presence(payload: DiscordRpcBuildPayload) -> Option<Value> 
     Some(json!({
         "details": clamp_discord_field(source["details"].as_str().unwrap_or("Using Isekai for Sky")),
         "state": clamp_discord_field(source["state"].as_str().unwrap_or("Playing Sky")),
-        "largeImageKey": "isekai_logo",
-        "largeImageText": "Isekai for Sky: Children of the Light",
-        "smallImageKey": "sky_logo",
-        "smallImageText": "Playing Sky",
+        "largeImageKey": "sky_poster",
+        "largeImageText": "Sky: Children of the Light",
+        "smallImageKey": "isekai_logo",
+        "smallImageText": "Isekai",
         "startTimestamp": payload.session_started_at_ms / 1_000,
         "endTimestamp": source.get("endTimestamp").cloned().unwrap_or(Value::Null),
         "buttons": buttons,
@@ -582,6 +593,9 @@ fn empty_release_notes() -> ReleaseNotes {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    configure_linux_display_backend();
+
     let builder = tauri::Builder::default()
         .manage(Mutex::new(DiscordRpcManager::default()))
         .setup(|app| {
@@ -782,6 +796,8 @@ fn resolve_discord_client_id(override_client_id: &str) -> Option<String> {
 
 fn build_discord_activity(payload: &DiscordRpcPresencePayload) -> Activity<'_> {
     let mut activity = Activity::new()
+        .activity_type(ActivityType::Playing)
+        .name(DISCORD_ACTIVITY_NAME)
         .details(payload.details.as_str())
         .state(payload.state.as_str())
         .assets(

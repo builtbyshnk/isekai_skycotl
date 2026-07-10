@@ -2,7 +2,7 @@ import type { AppSettings, EventInstance } from "./types";
 import type { PlannerState } from "./planner";
 
 export const ISEKAI_DISCORD_URL =
-  "https://github.com/builtbyshnk/isekai_skycotl";
+  "https://builtbyshnk.github.io/isekai_skycotl/";
 export const SKY_DISCORD_URL = "https://www.thatskygame.com/";
 
 export interface DiscordRpcButtonPayload {
@@ -54,19 +54,16 @@ export function buildDiscordRpcPresence({
 
   const source = selectPresenceSource(settings, events, planner);
   const buttons = settings.discordRpc.showButtons
-    ? [
-        { label: "Isekai", url: ISEKAI_DISCORD_URL },
-        { label: "Sky", url: SKY_DISCORD_URL },
-      ]
+    ? [{ label: "Get Isekai ✨", url: ISEKAI_DISCORD_URL }]
     : [];
 
   return {
     details: clampDiscordField(source.details),
     state: clampDiscordField(source.state),
-    largeImageKey: "isekai_logo",
-    largeImageText: "Isekai for Sky: Children of the Light",
-    smallImageKey: "sky_logo",
-    smallImageText: "Playing Sky",
+    largeImageKey: "sky_poster",
+    largeImageText: "Sky: Children of the Light",
+    smallImageKey: "isekai_logo",
+    smallImageText: "Isekai",
     startTimestamp: Math.floor(sessionStartedAtMs / 1_000),
     endTimestamp: source.endTimestamp,
     buttons,

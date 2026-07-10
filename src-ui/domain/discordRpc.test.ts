@@ -124,7 +124,12 @@ describe("Discord RPC presence builder", () => {
   });
 
   test("button setting controls fixed links", () => {
-    expect(build()?.buttons).toHaveLength(2);
+    expect(build()?.buttons).toEqual([
+      {
+        label: "Get Isekai ✨",
+        url: "https://builtbyshnk.github.io/isekai_skycotl/",
+      },
+    ]);
     expect(
       build({
         settings: {
@@ -133,5 +138,12 @@ describe("Discord RPC presence builder", () => {
         },
       })?.buttons,
     ).toEqual([]);
+  });
+
+  test("uses Sky poster art with the Isekai app icon", () => {
+    const presence = build();
+
+    expect(presence?.largeImageKey).toBe("sky_poster");
+    expect(presence?.smallImageKey).toBe("isekai_logo");
   });
 });

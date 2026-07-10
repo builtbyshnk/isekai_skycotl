@@ -37,4 +37,8 @@ describe("settings migration", () => {
     expect(settings.discordRpc.showButtons).toBe(false);
     expect(settings.discordRpc.requireSkyDetection).toBe(false);
   });
+
+  test("enables Discord RPC by default", () => {
+    expect(mergeSettings({}).discordRpc.enabled).toBe(true);
+  });
 });

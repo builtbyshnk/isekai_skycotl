@@ -24,16 +24,22 @@ export const en = {
   "nav.settings": "Settings",
   "nav.system": "System",
   "nav.updates": "Updates",
-  "settings.actionDescription": "Appearance, event filters, hotkeys, and time display preferences.",
-  "settings.appearance.description": "Choose the visual system used across the main window and overlay controls.",
+  "settings.actionDescription":
+    "Appearance, event filters, hotkeys, and time display preferences.",
+  "settings.appearance.description":
+    "Choose the visual system used across the main window and overlay controls.",
   "settings.appearance.title": "Appearance",
-  "settings.currentStyle.description": "A quick readout of the active interface choices.",
+  "settings.currentStyle.description":
+    "A quick readout of the active interface choices.",
   "settings.currentStyle.title": "Current Style",
-  "settings.events.description": "Choose which timers are eligible for overview rows, reminders, and overlay clock rows.",
+  "settings.events.description":
+    "Choose which timers are eligible for overview rows, reminders, and overlay clock rows.",
   "settings.events.title": "Event Filters",
-  "settings.hotkeys.description": "Edit global shortcuts for overlay controls and route navigation.",
+  "settings.hotkeys.description":
+    "Edit global shortcuts for overlay controls and route navigation.",
   "settings.hotkeys.title": "Hotkeys",
-  "settings.language.description": "Choose the interface language. Community translations can improve these files over time.",
+  "settings.language.description":
+    "Choose the interface language. Community translations can improve these files over time.",
   "settings.preferences": "Preferences",
   "settings.tab.events": "Events",
   "settings.tab.hotkeys": "Hotkeys",
@@ -44,7 +50,8 @@ export const en = {
   "settings.theme.light.label": "Light",
   "settings.theme.system.description": "Follow OS",
   "settings.time.aboutDescription": "Isekai desktop settings.",
-  "settings.time.description": "Control how event rows present Sky time and your local timezone.",
+  "settings.time.description":
+    "Control how event rows present Sky time and your local timezone.",
   "settings.time.format": "Time format",
   "settings.time.format12": "12-hour",
   "settings.time.format12.description": "AM / PM",
@@ -53,9 +60,11 @@ export const en = {
   "settings.time.formatSystem.description": "Use locale",
   "settings.time.localTimezone": "Local timezone",
   "settings.time.showLocal": "Show local time",
-  "settings.time.showLocal.description": "Display converted local labels beside event rows.",
+  "settings.time.showLocal.description":
+    "Display converted local labels beside event rows.",
   "settings.time.showSky": "Show Sky Time",
-  "settings.time.showSky.description": "Display Sky Mean Time beside event rows.",
+  "settings.time.showSky.description":
+    "Display Sky Mean Time beside event rows.",
   "settings.time.title": "Time Display",
   "settings.accentColor": "Accent color",
   "settings.interfaceFont": "Interface font",
@@ -64,34 +73,41 @@ export const en = {
   "settings.info.format": "Format",
   "settings.info.theme": "Theme",
   "settings.info.timezone": "Timezone",
-  "hotkeys.cycleOverlayMode.description": "Move between clock, route, and map layouts.",
+  "hotkeys.cycleOverlayMode.description":
+    "Move between clock, route, and map layouts.",
   "hotkeys.cycleOverlayMode.label": "Cycle overlay mode",
   "hotkeys.nextRouteTarget.description": "Advance the active route target.",
   "hotkeys.nextRouteTarget.label": "Next route target",
-  "hotkeys.previousRouteTarget.description": "Return to the previous route target.",
+  "hotkeys.previousRouteTarget.description":
+    "Return to the previous route target.",
   "hotkeys.previousRouteTarget.label": "Previous route target",
   "hotkeys.showMainWindow.description": "Bring Isekai back to the foreground.",
   "hotkeys.showMainWindow.label": "Show main window",
-  "hotkeys.toggleMiniMapExpanded.description": "Switch the mini map between compact and expanded.",
+  "hotkeys.toggleMiniMapExpanded.description":
+    "Switch the mini map between compact and expanded.",
   "hotkeys.toggleMiniMapExpanded.label": "Expand mini map",
   "hotkeys.toggleOverlay.description": "Show or hide the overlay window.",
   "hotkeys.toggleOverlay.label": "Toggle overlay",
-  "hotkeys.toggleRouteTargetComplete.description": "Mark the active target open or done.",
+  "hotkeys.toggleRouteTargetComplete.description":
+    "Mark the active target open or done.",
   "hotkeys.toggleRouteTargetComplete.label": "Toggle target complete",
   "overlay.clockRows": "Clock rows",
   "overlay.cornerRadius": "Corner radius",
   "overlay.enable": "Enable overlay",
   "overlay.enableGameDetection": "Enable game detection",
-  "overlay.gameDetection.description": "Watch for the Sky process and show or hide the overlay automatically.",
+  "overlay.gameDetection.description":
+    "Watch for the Sky process and show or hide the overlay automatically.",
   "overlay.hideOnExit": "Hide overlay when Sky exits",
-  "overlay.hideOnExit.description": "Hide the overlay after the Sky process stops.",
+  "overlay.hideOnExit.description":
+    "Hide the overlay after the Sky process stops.",
   "overlay.layout": "Layout",
   "overlay.launchDelay": "Launch delay",
   "overlay.miniMapSize": "Mini map size",
   "overlay.mode.clock": "Clock",
   "overlay.mode.clock.description": "Timer rows only.",
   "overlay.mode.clockRoute": "Clock + route",
-  "overlay.mode.clockRoute.description": "Clock rows with mini map and route text.",
+  "overlay.mode.clockRoute.description":
+    "Clock rows with mini map and route text.",
   "overlay.mode.miniMap": "Mini map",
   "overlay.mode.miniMap.description": "Map panel with current route pins.",
   "overlay.mode.route": "Route",
@@ -103,65 +119,104 @@ export const en = {
   "overlay.position.topLeft": "Top left",
   "overlay.position.topRight": "Top right",
   "overlay.scale": "Scale",
-  "overlay.settings.behavior.description": "Choose the overlay layout and how it appears in-game.",
+  "overlay.settings.behavior.description":
+    "Choose the overlay layout and how it appears in-game.",
   "overlay.settings.behavior.title": "Behavior",
-  "overlay.settings.description": "Passive click-through overlay controls for in-game use.",
-  "overlay.settings.note": "Clock mode uses the selected clock row count. Clock + route shows up to 2 clock rows with the mini map and route text.",
-  "overlay.settings.modeCycleHelp": "The mode-cycle hotkey rotates through these same layouts.",
+  "overlay.settings.description":
+    "Passive click-through overlay controls for in-game use.",
+  "overlay.settings.note":
+    "Clock mode uses the selected clock row count. Clock + route shows up to 2 clock rows with the mini map and route text.",
+  "overlay.settings.modeCycleHelp":
+    "The mode-cycle hotkey rotates through these same layouts.",
   "overlay.showOnStart": "Show overlay when Sky starts",
-  "overlay.showOnStart.description": "Wait for the game splash and startup screens, then show the overlay once per launch.",
+  "overlay.showOnStart.description":
+    "Wait for the game splash and startup screens, then show the overlay once per launch.",
   "overlay.clickThrough": "Click-through",
   "discordRpc.clientConfigured": "Client configured",
   "discordRpc.clientId": "Test Client ID",
-  "discordRpc.clientId.description": "Paste a Discord Developer application ID here for local testing. Release builds can use ISEKAI_DISCORD_CLIENT_ID instead.",
+  "discordRpc.clientId.description":
+    "Paste a Discord Developer application ID here for local testing. Release builds can use ISEKAI_DISCORD_CLIENT_ID instead.",
   "discordRpc.clientId.placeholder": "Discord application ID",
   "discordRpc.clientMissing": "Client missing",
-  "discordRpc.controls.description": "Choose safe Sky activity shown in Discord.",
-  "discordRpc.controls.title": "Sky RPC",
-  "discordRpc.description": "Manual Discord Rich Presence that connects Sky, Isekai, and Discord without reading game state.",
+  "discordRpc.activity.description":
+    "Choose what Isekai shares while you play.",
+  "discordRpc.activity.title": "Activity details",
+  "discordRpc.connectionIssue": "Discord connection issue",
+  "discordRpc.controls.description":
+    "Share your Sky activity with friends on Discord.",
+  "discordRpc.controls.title": "Rich Presence",
+  "discordRpc.description":
+    "Show what you are doing in Sky on your Discord profile.",
   "discordRpc.discordConnected": "Discord connected",
   "discordRpc.discordDisconnected": "Discord disconnected",
-  "discordRpc.enable": "Enable Sky RPC",
-  "discordRpc.enable.description": "Show Isekai activity in Discord only while Sky is detected.",
-  "discordRpc.links.description": "These are the fixed buttons shown in Discord when buttons are enabled.",
+  "discordRpc.enable": "Share activity on Discord",
+  "discordRpc.enable.description":
+    "Isekai updates your profile while the desktop Discord app is open.",
+  "discordRpc.links.description":
+    "These are the fixed buttons shown in Discord when buttons are enabled.",
   "discordRpc.links.title": "Presence Buttons",
   "discordRpc.mode": "Presence mode",
   "discordRpc.mode.auto": "Auto",
-  "discordRpc.mode.auto.description": "Use events, candle run, route, goals, then overlay in that order.",
+  "discordRpc.mode.auto.description":
+    "Use events, candle run, route, goals, then overlay in that order.",
   "discordRpc.mode.candleRun": "Candle Run",
-  "discordRpc.mode.candleRun.description": "Show selected candle run progress from Isekai.",
+  "discordRpc.mode.candleRun.description":
+    "Show selected candle run progress from Isekai.",
   "discordRpc.mode.events": "Events",
-  "discordRpc.mode.events.description": "Show countdowns for events enabled in Settings.",
+  "discordRpc.mode.events.description":
+    "Show countdowns for events enabled in Settings.",
   "discordRpc.mode.goals": "Goals",
-  "discordRpc.mode.goals.description": "Show open goal count without custom goal text.",
+  "discordRpc.mode.goals.description":
+    "Show open goal count without custom goal text.",
   "discordRpc.mode.overlay": "Overlay",
   "discordRpc.mode.overlay.description": "Show current Isekai overlay mode.",
   "discordRpc.mode.route": "Route",
-  "discordRpc.mode.route.description": "Show selected route progress from Isekai.",
+  "discordRpc.mode.route.description":
+    "Show selected route progress from Isekai.",
   "discordRpc.preset.farmingWax": "Planning candle run",
-  "discordRpc.preset.farmingWax.description": "Fallback status for wax and candle-run sessions.",
+  "discordRpc.preset.farmingWax.description":
+    "Fallback status for wax and candle-run sessions.",
   "discordRpc.preset.planning": "Planning",
-  "discordRpc.preset.planning.description": "Fallback status for general Sky planning.",
+  "discordRpc.preset.planning.description":
+    "Fallback status for general Sky planning.",
   "discordRpc.preset.trackingGoals": "Tracking goals",
-  "discordRpc.preset.trackingGoals.description": "Fallback status for cosmetics and goals.",
+  "discordRpc.preset.trackingGoals.description":
+    "Fallback status for cosmetics and goals.",
   "discordRpc.preset.watchingTimers": "Watching timers",
-  "discordRpc.preset.watchingTimers.description": "Fallback status for reset and event timers.",
-  "discordRpc.preview.description": "Current payload Isekai will send when RPC is available.",
-  "discordRpc.preview.emptyDetails": "RPC is waiting",
-  "discordRpc.preview.emptyState": "Enable RPC and start Sky to publish presence.",
-  "discordRpc.preview.title": "Discord Preview",
+  "discordRpc.preset.watchingTimers.description":
+    "Fallback status for reset and event timers.",
+  "discordRpc.preview.description":
+    "This is how your activity will appear to friends.",
+  "discordRpc.preview.emptyDetails": "Waiting for Sky",
+  "discordRpc.preview.emptyState":
+    "Your activity will appear when Sky is detected.",
+  "discordRpc.preview.playing": "Playing",
+  "discordRpc.preview.title": "Your Discord activity",
+  "discordRpc.previewWithoutSky": "Preview without Sky",
   "discordRpc.requireSkyDetection": "Require Sky detection",
-  "discordRpc.requireSkyDetection.description": "Turn off while testing to publish Discord presence without Sky running.",
+  "discordRpc.requireSkyDetection.description":
+    "Only share activity while the Sky game is running.",
+  "discordRpc.testWithoutSky": "Test RPC without Sky",
   "discordRpc.safePreset": "Safe fallback",
   "discordRpc.showButtons": "Show buttons",
-  "discordRpc.showButtons.description": "Add fixed Isekai and Sky buttons to the Discord profile card.",
+  "discordRpc.showButtons.description":
+    "Show a Get Isekai link on your Discord activity.",
   "discordRpc.skyDetected": "Sky detected",
   "discordRpc.skyNotDetected": "Sky not detected",
   "discordRpc.status.active": "Active",
+  "discordRpc.status.active.description":
+    "Your Sky activity is visible on Discord.",
   "discordRpc.status.disabled": "Disabled",
+  "discordRpc.status.disabled.description":
+    "Turn on Rich Presence to share your activity.",
   "discordRpc.status.missingClientId": "Missing client ID",
   "discordRpc.status.ready": "Ready",
+  "discordRpc.status.ready.description":
+    "Discord is ready to receive your activity.",
   "discordRpc.status.waitingForSky": "Waiting for Sky",
+  "discordRpc.status.waitingForSky.description":
+    "Start Sky and Isekai will share your activity automatically.",
+  "discordRpc.useSkyDetection": "Wait for Sky",
   "page.notFound.description": "The selected page is not available.",
   "page.notFound.title": "Not Found",
 } as const;

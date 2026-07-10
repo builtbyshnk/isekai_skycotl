@@ -62,6 +62,15 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 Isekai is a Tauri 2 desktop app for Sky: Children of the Light, built with React, TypeScript, Vite, Rust, Tailwind CSS, and shadcn/ui.
 
+## Platform Support
+
+Isekai is developed and maintained for Windows, macOS, and Linux.
+
+- Preserve behavior across all three platforms when making changes.
+- Keep platform-specific code explicitly guarded and retain a fallback when practical.
+- Treat window management, transparency, shortcuts, paths, packaging, and system integration as cross-platform concerns.
+- Verify platform-specific fixes on the affected operating system and run the shared checks for every change.
+
 ## Local Skills
 
 Always use the project-installed shadcn skill before any shadcn/ui or component work:

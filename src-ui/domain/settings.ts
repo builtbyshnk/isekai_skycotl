@@ -156,7 +156,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     },
   },
   discordRpc: {
-    enabled: false,
+    enabled: true,
     clientId: "",
     mode: "auto",
     safePreset: "planning",

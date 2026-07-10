@@ -19,6 +19,7 @@ import {
   Info,
   Keyboard,
   Monitor,
+  MoreHorizontal,
   Palette,
   Plus,
   RefreshCw,
@@ -32,25 +33,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+import { PlatformSelect } from "@/components/platform-select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { EVENT_DEFINITIONS } from "@/domain/settings";
 import { ACCENT_OPTIONS, FONT_OPTIONS } from "@/domain/theme";
@@ -65,15 +61,10 @@ import {
   type PlannerGoal,
   type PlannerState,
 } from "@/domain/planner";
-import {
-  formatDuration,
-  formatLocalDateTime,
-  skyNow,
-} from "@/domain/skyTime";
+import { formatDuration, formatLocalDateTime, skyNow } from "@/domain/skyTime";
 import type { AppSettings, EventInstance } from "@/domain/types";
 import {
   ISEKAI_DISCORD_URL,
-  SKY_DISCORD_URL,
   type DiscordRpcPresencePayload,
 } from "@/domain/discordRpc";
 import {
@@ -316,7 +307,9 @@ export function OverviewPage({
 }) {
   const skyClock = skyNow(now);
   const upcoming = events.find((event) => event.status === "upcoming");
-  const dailyReset = events.find((event) => event.definitionId === "daily-reset");
+  const dailyReset = events.find(
+    (event) => event.definitionId === "daily-reset",
+  );
   const edenReset = events.find((event) => event.definitionId === "eden-reset");
   const [nextSeasonal, setNextSeasonal] = useState<SkyCalendarEntry[]>([]);
   const seasonalDate = now.toISOString().slice(0, 10);
@@ -385,7 +378,9 @@ export function OverviewPage({
           <Card>
             <CardHeader>
               <CardTitle>Now / Upcoming</CardTitle>
-              <CardDescription>Countdowns are local and Sky-time aware.</CardDescription>
+              <CardDescription>
+                Countdowns are local and Sky-time aware.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-2">
               {events.slice(0, 10).map((event) => (
@@ -421,7 +416,9 @@ export function OverviewPage({
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Seasonal Calendar</CardTitle>
-              <CardDescription>Upcoming seasonal and event date ranges.</CardDescription>
+              <CardDescription>
+                Upcoming seasonal and event date ranges.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-2">
               {nextSeasonal.length > 0 ? (
@@ -435,7 +432,11 @@ export function OverviewPage({
               )}
             </CardContent>
           </Card>
-          <OverlayPreview events={events} planner={planner} settings={settings} />
+          <OverlayPreview
+            events={events}
+            planner={planner}
+            settings={settings}
+          />
         </div>
       </div>
     </>
@@ -450,7 +451,11 @@ export function CalendarPage({
   planner: PlannerState;
 }) {
   const [entries, setEntries] = useState<SkyCalendarEntry[]>([]);
-  const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+  const monthStart = new Date(
+    selectedDate.getFullYear(),
+    selectedDate.getMonth(),
+    1,
+  );
   const startIso = toDateIso(monthStart);
   const endIso = addDaysIso(startIso, 41);
   const filterKinds = useMemo(
@@ -484,7 +489,10 @@ export function CalendarPage({
     };
   }, [endIso, filterKinds, startIso]);
   const goals = planner.calendarFilters.goals
-    ? planner.goals.filter((goal) => goal.dueDate && goal.dueDate >= startIso && goal.dueDate <= endIso)
+    ? planner.goals.filter(
+        (goal) =>
+          goal.dueDate && goal.dueDate >= startIso && goal.dueDate <= endIso,
+      )
     : [];
   const grouped = useMemo(
     () => groupCalendar(entries, goals, startIso, endIso),
@@ -514,7 +522,10 @@ export function CalendarPage({
                 </div>
                 <div className="grid gap-1">
                   {dayItems.slice(0, 4).map((item) => (
-                    <div key={item.id} className="truncate text-xs text-muted-foreground">
+                    <div
+                      key={item.id}
+                      className="truncate text-xs text-muted-foreground"
+                    >
                       {item.label}
                     </div>
                   ))}
@@ -526,7 +537,9 @@ export function CalendarPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Selected Month</CardTitle>
-            <CardDescription>{startIso} through {endIso}</CardDescription>
+            <CardDescription>
+              {startIso} through {endIso}
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2">
             {entries.slice(0, 12).map((entry) => (
@@ -550,8 +563,11 @@ export function RoutesPage({
   const [areas, setAreas] = useState<SkyAreaSummary[]>([]);
   const [areaRoute, setAreaRoute] = useState<SkyAreaRoute | null>(null);
   const [routeTargets, setRouteTargets] = useState<SkyRouteTarget[]>([]);
-  const [routeState, setRouteState] = useState<SkyActiveRouteTargetState | null>(null);
-  const [connections, setConnections] = useState<Array<{ guid: string; name: string }>>([]);
+  const [routeState, setRouteState] =
+    useState<SkyActiveRouteTargetState | null>(null);
+  const [connections, setConnections] = useState<
+    Array<{ guid: string; name: string }>
+  >([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -568,7 +584,8 @@ export function RoutesPage({
   }, []);
 
   const selectedRealmGuid =
-    planner.activeRoute.realmGuid ?? realms.find((realm) => realm.areaGuids.length > 0)?.guid;
+    planner.activeRoute.realmGuid ??
+    realms.find((realm) => realm.areaGuids.length > 0)?.guid;
 
   useEffect(() => {
     let cancelled = false;
@@ -590,7 +607,10 @@ export function RoutesPage({
   }, [selectedRealmGuid]);
 
   const selectedAreaGuid =
-    planner.activeRoute.areaGuid ?? areas.find((area) => area.spiritGuids.length + area.wingedLightGuids.length > 0)?.guid;
+    planner.activeRoute.areaGuid ??
+    areas.find(
+      (area) => area.spiritGuids.length + area.wingedLightGuids.length > 0,
+    )?.guid;
 
   useEffect(() => {
     let cancelled = false;
@@ -627,17 +647,17 @@ export function RoutesPage({
       return;
     }
 
-    void Promise.all(areaRoute.connectionGuids.map((guid) => getSkyArea(guid))).then(
-      (nextConnections) => {
-        if (!cancelled) {
-          setConnections(
-            nextConnections.filter(
-              (area): area is SkyAreaSummary => area !== null,
-            ),
-          );
-        }
-      },
-    );
+    void Promise.all(
+      areaRoute.connectionGuids.map((guid) => getSkyArea(guid)),
+    ).then((nextConnections) => {
+      if (!cancelled) {
+        setConnections(
+          nextConnections.filter(
+            (area): area is SkyAreaSummary => area !== null,
+          ),
+        );
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -656,11 +676,15 @@ export function RoutesPage({
     wingedLights?: boolean;
   }) {
     const nextRealmGuid = input.realmGuid ?? selectedRealmGuid;
-    const nextAreas = input.realmGuid && input.realmGuid !== selectedRealmGuid ? [] : areas;
+    const nextAreas =
+      input.realmGuid && input.realmGuid !== selectedRealmGuid ? [] : areas;
     const nextAreaGuid =
       input.areaGuid ??
       (input.realmGuid
-        ? nextAreas.find((area) => area.spiritGuids.length + area.wingedLightGuids.length > 0)?.guid
+        ? nextAreas.find(
+            (area) =>
+              area.spiritGuids.length + area.wingedLightGuids.length > 0,
+          )?.guid
         : selectedAreaGuid);
 
     onPlannerChange(
@@ -695,46 +719,38 @@ export function RoutesPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Route Builder</CardTitle>
-            <CardDescription>Manual in-game reference, not live tracking.</CardDescription>
+            <CardDescription>
+              Manual in-game reference, not live tracking.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="route-realm">Realm</Label>
-              <NativeSelect
+              <PlatformSelect
                 id="route-realm"
                 className="w-full"
                 value={selectedRealmGuid}
-                onChange={(event) =>
-                  updateRoute({ realmGuid: event.target.value })
-                }
+                onValueChange={(realmGuid) => updateRoute({ realmGuid })}
                 disabled={realms.length === 0}
-              >
-                {realms.map((realm) => (
-                  <NativeSelectOption key={realm.guid} value={realm.guid}>
-                    {realm.shortName ?? realm.name}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                options={realms.map((realm) => ({
+                  value: realm.guid,
+                  label: realm.shortName ?? realm.name,
+                }))}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="route-area">Area</Label>
-              <NativeSelect
+              <PlatformSelect
                 id="route-area"
                 className="w-full"
                 value={selectedAreaGuid}
-                onChange={(event) =>
-                  updateRoute({ areaGuid: event.target.value })
-                }
+                onValueChange={(areaGuid) => updateRoute({ areaGuid })}
                 disabled={areas.length === 0}
-              >
-                {areas.map((area) => {
-                  return (
-                    <NativeSelectOption key={area.guid} value={area.guid}>
-                      {area.name} ({area.spiritGuids.length + area.wingedLightGuids.length})
-                    </NativeSelectOption>
-                  );
-                })}
-              </NativeSelect>
+                options={areas.map((area) => ({
+                  value: area.guid,
+                  label: `${area.name} (${area.spiritGuids.length + area.wingedLightGuids.length})`,
+                }))}
+              />
             </div>
             <Separator />
             <SettingSwitch
@@ -796,13 +812,18 @@ export function RoutesPage({
                     key={target.guid}
                     target={target}
                     active={target.guid === activeTarget?.guid}
-                    complete={planner.routeProgress.completedTargets[target.guid] === true}
+                    complete={
+                      planner.routeProgress.completedTargets[target.guid] ===
+                      true
+                    }
                     index={index}
                   />
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {selectedAreaGuid ? "No route targets match these filters." : "Loading route data..."}
+                  {selectedAreaGuid
+                    ? "No route targets match these filters."
+                    : "Loading route data..."}
                 </p>
               )}
             </CardContent>
@@ -822,7 +843,9 @@ export function CandleRunsPage({
 }) {
   const [runs, setRuns] = useState<SkyCandleRunSummary[]>([]);
   const [selectedRun, setSelectedRun] = useState<SkyCandleRun | null>(null);
-  const [runGroupsByGuid, setRunGroupsByGuid] = useState<Record<string, SkyCandleGroup[]>>({});
+  const [runGroupsByGuid, setRunGroupsByGuid] = useState<
+    Record<string, SkyCandleGroup[]>
+  >({});
 
   useEffect(() => {
     let cancelled = false;
@@ -982,7 +1005,11 @@ export function CandleRunsPage({
         </Card>
 
         <div className="grid w-full gap-4 self-start">
-          <Card className={selectedRun?.imageUrl ? "overflow-hidden pt-0" : undefined}>
+          <Card
+            className={
+              selectedRun?.imageUrl ? "overflow-hidden pt-0" : undefined
+            }
+          >
             {selectedRun?.imageUrl ? (
               <CandleRunMapPreview
                 imageUrl={selectedRun.imageUrl}
@@ -1043,7 +1070,9 @@ export function CandleRunsPage({
                 })
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {runs.length > 0 ? "No candle run selected." : "Loading candle data..."}
+                  {runs.length > 0
+                    ? "No candle run selected."
+                    : "Loading candle data..."}
                 </p>
               )}
             </CardContent>
@@ -1096,20 +1125,38 @@ export function GoalsPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">New Goal</CardTitle>
-            <CardDescription>Keep this lightweight: target, currency, date.</CardDescription>
+            <CardDescription>
+              Keep this lightweight: target, currency, date.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             <div className="grid gap-2">
               <Label htmlFor="goal-title">Title</Label>
-              <Input id="goal-title" value={title} onChange={(event) => setTitle(event.currentTarget.value)} />
+              <Input
+                id="goal-title"
+                value={title}
+                onChange={(event) => setTitle(event.currentTarget.value)}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="goal-currency">Currency needed</Label>
-              <Input id="goal-currency" inputMode="numeric" value={currencyNeeded} onChange={(event) => setCurrencyNeeded(event.currentTarget.value)} />
+              <Input
+                id="goal-currency"
+                inputMode="numeric"
+                value={currencyNeeded}
+                onChange={(event) =>
+                  setCurrencyNeeded(event.currentTarget.value)
+                }
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="goal-date">Due date</Label>
-              <Input id="goal-date" type="date" value={dueDate} onChange={(event) => setDueDate(event.currentTarget.value)} />
+              <Input
+                id="goal-date"
+                type="date"
+                value={dueDate}
+                onChange={(event) => setDueDate(event.currentTarget.value)}
+              />
             </div>
             <Button type="button" onClick={addGoal}>
               <Plus className="size-4" />
@@ -1126,7 +1173,9 @@ export function GoalsPage({
                 onPlannerChange({
                   ...planner,
                   goals: planner.goals.map((candidate) =>
-                    candidate.id === goal.id ? { ...candidate, status } : candidate,
+                    candidate.id === goal.id
+                      ? { ...candidate, status }
+                      : candidate,
                   ),
                 })
               }
@@ -1174,7 +1223,12 @@ export function CollectionPage({
       <div className="grid gap-4 p-5">
         <div className="relative max-w-xl">
           <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" />
-          <Input className="pl-9" value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder="Search items, types, or origins" />
+          <Input
+            className="pl-9"
+            value={query}
+            onChange={(event) => setQuery(event.currentTarget.value)}
+            placeholder="Search items, types, or origins"
+          />
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {items.length > 0 ? (
@@ -1196,7 +1250,9 @@ export function CollectionPage({
             ))
           ) : (
             <div className="rounded-md border border-border bg-card/80 p-3 text-sm text-muted-foreground">
-              {itemsLoaded ? "No items match this search." : "Loading planner data..."}
+              {itemsLoaded
+                ? "No items match this search."
+                : "Loading planner data..."}
             </div>
           )}
         </div>
@@ -1234,7 +1290,9 @@ export function OverlaySettingsPage({
       <div className="grid gap-4 p-5 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{t("overlay.settings.behavior.title")}</CardTitle>
+            <CardTitle className="text-base">
+              {t("overlay.settings.behavior.title")}
+            </CardTitle>
             <CardDescription>
               {t("overlay.settings.behavior.description")}
             </CardDescription>
@@ -1247,7 +1305,10 @@ export function OverlaySettingsPage({
               label={t("overlay.enable")}
               checked={settings.overlay.enabled}
               onCheckedChange={(enabled) =>
-                onSettingsChange({ ...settings, overlay: { ...settings.overlay, enabled } })
+                onSettingsChange({
+                  ...settings,
+                  overlay: { ...settings.overlay, enabled },
+                })
               }
             />
             <Separator />
@@ -1334,27 +1395,24 @@ export function OverlaySettingsPage({
             <Separator />
             <div className="grid gap-2">
               <Label htmlFor="overlay-mode">{t("overlay.layout")}</Label>
-              <NativeSelect
+              <PlatformSelect
                 id="overlay-mode"
                 className="w-full"
                 value={selectedMode}
-                onChange={(event) =>
+                onValueChange={(mode) =>
                   onSettingsChange({
                     ...settings,
                     overlay: {
                       ...settings.overlay,
-                      mode: event.target
-                        .value as AppSettings["overlay"]["mode"],
+                      mode: mode as AppSettings["overlay"]["mode"],
                     },
                   })
                 }
-              >
-                {OVERLAY_MODE_OPTIONS.map((mode) => (
-                  <NativeSelectOption key={mode.value} value={mode.value}>
-                    {modeLabels.get(mode.value) ?? t(mode.labelKey)}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                options={OVERLAY_MODE_OPTIONS.map((mode) => ({
+                  value: mode.value,
+                  label: modeLabels.get(mode.value) ?? t(mode.labelKey),
+                }))}
+              />
               <p className="text-xs text-muted-foreground">
                 {t("overlay.settings.modeCycleHelp")}
               </p>
@@ -1363,32 +1421,32 @@ export function OverlaySettingsPage({
               label={t("overlay.clickThrough")}
               checked={settings.overlay.clickThrough}
               onCheckedChange={(clickThrough) =>
-                onSettingsChange({ ...settings, overlay: { ...settings.overlay, clickThrough } })
+                onSettingsChange({
+                  ...settings,
+                  overlay: { ...settings.overlay, clickThrough },
+                })
               }
             />
             <div className="grid gap-2">
               <Label htmlFor="overlay-position">{t("overlay.position")}</Label>
-              <NativeSelect
+              <PlatformSelect
                 id="overlay-position"
                 className="w-full"
                 value={settings.overlay.position}
-                onChange={(event) =>
+                onValueChange={(position) =>
                   onSettingsChange({
                     ...settings,
                     overlay: {
                       ...settings.overlay,
-                      position: event.target
-                        .value as AppSettings["overlay"]["position"],
+                      position: position as AppSettings["overlay"]["position"],
                     },
                   })
                 }
-              >
-                {OVERLAY_POSITION_OPTIONS.map((position) => (
-                  <NativeSelectOption key={position.value} value={position.value}>
-                    {t(position.labelKey)}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                options={OVERLAY_POSITION_OPTIONS.map((position) => ({
+                  value: position.value,
+                  label: t(position.labelKey),
+                }))}
+              />
             </div>
             <SliderSetting
               label={t("overlay.opacity")}
@@ -1398,7 +1456,10 @@ export function OverlaySettingsPage({
               step={0.01}
               display={`${Math.round(settings.overlay.opacity * 100)}%`}
               onValueChange={(opacity) =>
-                onSettingsChange({ ...settings, overlay: { ...settings.overlay, opacity } })
+                onSettingsChange({
+                  ...settings,
+                  overlay: { ...settings.overlay, opacity },
+                })
               }
             />
             <SliderSetting
@@ -1409,7 +1470,10 @@ export function OverlaySettingsPage({
               step={0.05}
               display={`${Math.round(settings.overlay.scale * 100)}%`}
               onValueChange={(scale) =>
-                onSettingsChange({ ...settings, overlay: { ...settings.overlay, scale } })
+                onSettingsChange({
+                  ...settings,
+                  overlay: { ...settings.overlay, scale },
+                })
               }
             />
             <SliderSetting
@@ -1420,7 +1484,10 @@ export function OverlaySettingsPage({
               step={1}
               display={settings.overlay.maxEvents.toString()}
               onValueChange={(maxEvents) =>
-                onSettingsChange({ ...settings, overlay: { ...settings.overlay, maxEvents } })
+                onSettingsChange({
+                  ...settings,
+                  overlay: { ...settings.overlay, maxEvents },
+                })
               }
             />
             <SliderSetting
@@ -1477,6 +1544,15 @@ export function DiscordRpcPage({
   onSettingsChange: (settings: AppSettings) => void;
 }) {
   const { t } = useI18n(settings.language);
+  const [rpcPreviewNow, setRpcPreviewNow] = useState(Date.now());
+  useEffect(() => {
+    if (!presence?.startTimestamp) {
+      return;
+    }
+
+    const timer = window.setInterval(() => setRpcPreviewNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [presence?.startTimestamp]);
   const selectedMode =
     DISCORD_RPC_MODE_OPTIONS.find(
       (mode) => mode.value === settings.discordRpc.mode,
@@ -1494,6 +1570,13 @@ export function DiscordRpcPage({
         : status.active
           ? t("discordRpc.status.active")
           : t("discordRpc.status.ready");
+  const availabilityDescription = !settings.discordRpc.enabled
+    ? t("discordRpc.status.disabled.description")
+    : settings.discordRpc.requireSkyDetection && !skyProcessRunning
+      ? t("discordRpc.status.waitingForSky.description")
+      : status.active
+        ? t("discordRpc.status.active.description")
+        : t("discordRpc.status.ready.description");
 
   return (
     <>
@@ -1501,209 +1584,248 @@ export function DiscordRpcPage({
         title={t("nav.discordRpc")}
         description={t("discordRpc.description")}
         action={
-          <Badge variant={status.active ? "default" : "secondary"} className="rounded-sm">
+          <Badge
+            variant={status.active ? "default" : "secondary"}
+            className="rounded-sm"
+          >
             {availability}
           </Badge>
         }
       />
-      <div className="grid gap-4 p-5 xl:grid-cols-[360px_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("discordRpc.controls.title")}</CardTitle>
-            <CardDescription>
-              {t("discordRpc.controls.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <SettingSwitch
-              label={t("discordRpc.enable")}
-              description={t("discordRpc.enable.description")}
-              checked={settings.discordRpc.enabled}
-              disabled={!status.configured}
-              onCheckedChange={(enabled) =>
-                onSettingsChange({
-                  ...settings,
-                  discordRpc: { ...settings.discordRpc, enabled },
-                })
-              }
-            />
-            <Separator />
-            <div className="grid gap-2">
-              <Label htmlFor="discord-rpc-client-id">{t("discordRpc.clientId")}</Label>
-              <Input
-                id="discord-rpc-client-id"
-                value={settings.discordRpc.clientId}
-                placeholder={t("discordRpc.clientId.placeholder")}
-                onChange={(event) =>
-                  onSettingsChange({
-                    ...settings,
-                    discordRpc: {
-                      ...settings.discordRpc,
-                      clientId: event.target.value,
-                    },
-                  })
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                {t("discordRpc.clientId.description")}
-              </p>
-            </div>
-            <Separator />
-            <div className="grid gap-2">
-              <Label htmlFor="discord-rpc-mode">{t("discordRpc.mode")}</Label>
-              <NativeSelect
-                id="discord-rpc-mode"
-                className="w-full"
-                value={settings.discordRpc.mode}
-                onChange={(event) =>
-                  onSettingsChange({
-                    ...settings,
-                    discordRpc: {
-                      ...settings.discordRpc,
-                      mode: event.target
-                        .value as AppSettings["discordRpc"]["mode"],
-                    },
-                  })
-                }
-              >
-                {DISCORD_RPC_MODE_OPTIONS.map((mode) => (
-                  <NativeSelectOption key={mode.value} value={mode.value}>
-                    {t(mode.labelKey)}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-              <p className="text-xs text-muted-foreground">
-                {t(selectedMode.descriptionKey)}
-              </p>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="discord-rpc-preset">{t("discordRpc.safePreset")}</Label>
-              <NativeSelect
-                id="discord-rpc-preset"
-                className="w-full"
-                value={settings.discordRpc.safePreset}
-                onChange={(event) =>
-                  onSettingsChange({
-                    ...settings,
-                    discordRpc: {
-                      ...settings.discordRpc,
-                      safePreset: event.target
-                        .value as AppSettings["discordRpc"]["safePreset"],
-                    },
-                  })
-                }
-              >
-                {DISCORD_RPC_PRESET_OPTIONS.map((preset) => (
-                  <NativeSelectOption key={preset.value} value={preset.value}>
-                    {t(preset.labelKey)}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-              <p className="text-xs text-muted-foreground">
-                {t(selectedPreset.descriptionKey)}
-              </p>
-            </div>
-            <Separator />
-            <SettingSwitch
-              label={t("discordRpc.showButtons")}
-              description={t("discordRpc.showButtons.description")}
-              checked={settings.discordRpc.showButtons}
-              onCheckedChange={(showButtons) =>
-                onSettingsChange({
-                  ...settings,
-                  discordRpc: { ...settings.discordRpc, showButtons },
-                })
-              }
-            />
-            <SettingSwitch
-              label={t("discordRpc.requireSkyDetection")}
-              description={t("discordRpc.requireSkyDetection.description")}
-              checked={settings.discordRpc.requireSkyDetection}
-              onCheckedChange={(requireSkyDetection) =>
-                onSettingsChange({
-                  ...settings,
-                  discordRpc: { ...settings.discordRpc, requireSkyDetection },
-                })
-              }
-            />
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-4">
+      <div className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid content-start gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{t("discordRpc.preview.title")}</CardTitle>
+              <CardTitle>{t("discordRpc.preview.title")}</CardTitle>
               <CardDescription>
                 {t("discordRpc.preview.description")}
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid gap-2 rounded-md border border-border bg-card/70 p-3">
-                <div className="flex items-start gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                    <Gamepad2 className="size-5" />
+            <CardContent>
+              <div className="grid max-w-md gap-3 rounded-md border border-border bg-muted/20 p-3 shadow-sm">
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>{t("discordRpc.preview.playing")}</span>
+                  <MoreHorizontal className="size-4" aria-hidden="true" />
+                </div>
+                <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-3">
+                  <div className="relative size-[88px]">
+                    <img
+                      src="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/8e/db/0e/8edb0e02-f701-cd7c-1303-770b12405dcb/AppIcon-0-0-1x_U007emarketing-0-5-0-85-220.png/512x512bb.jpg"
+                      alt="Sky: Children of the Light"
+                      className="size-full rounded-md object-cover"
+                    />
+                    <img
+                      src="/sky-avatar-icon.png"
+                      alt="Isekai"
+                      className="absolute -bottom-1 -right-1 size-7 rounded-full border-2 border-card bg-card object-cover shadow-sm"
+                    />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="grid min-w-0 content-center gap-0.5">
                     <p className="truncate text-sm font-semibold">
+                      Sky: COTL w/ Isekai
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
                       {presence?.details ?? t("discordRpc.preview.emptyDetails")}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {presence?.state ?? t("discordRpc.preview.emptyState")}
                     </p>
+                    <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-primary">
+                      <Clock className="size-3.5" aria-hidden="true" />
+                      {formatDiscordElapsed(
+                        presence?.startTimestamp,
+                        rpcPreviewNow,
+                      )}
+                    </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant={skyProcessRunning ? "default" : "secondary"}>
-                    {skyProcessRunning
-                      ? t("discordRpc.skyDetected")
-                      : t("discordRpc.skyNotDetected")}
-                  </Badge>
-                  <Badge variant={status.connected ? "default" : "secondary"}>
-                    {status.connected
-                      ? t("discordRpc.discordConnected")
-                      : t("discordRpc.discordDisconnected")}
-                  </Badge>
-                  <Badge variant={status.configured ? "default" : "secondary"}>
-                    {status.configured
-                      ? t("discordRpc.clientConfigured")
-                      : t("discordRpc.clientMissing")}
-                  </Badge>
-                </div>
+                {settings.discordRpc.showButtons ? (
+                  <Button asChild size="sm" className="w-full">
+                    <a href={ISEKAI_DISCORD_URL} target="_blank" rel="noreferrer">
+                      <ExternalLink data-icon="inline-start" />
+                      Get Isekai ✨
+                    </a>
+                  </Button>
+                ) : null}
               </div>
-              {status.lastError ? (
-                <div className="rounded-md border border-border bg-muted/25 p-3 text-xs text-muted-foreground">
-                  {status.lastError}
-                </div>
+            </CardContent>
+            <CardFooter className="flex flex-wrap gap-2 border-t">
+              <Badge variant={skyProcessRunning ? "default" : "secondary"}>
+                {skyProcessRunning
+                  ? t("discordRpc.skyDetected")
+                  : t("discordRpc.skyNotDetected")}
+              </Badge>
+              <Badge variant={status.connected ? "default" : "secondary"}>
+                {status.connected
+                  ? t("discordRpc.discordConnected")
+                  : t("discordRpc.discordDisconnected")}
+              </Badge>
+            </CardFooter>
+          </Card>
+
+          {status.lastError ? (
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle>{t("discordRpc.connectionIssue")}</CardTitle>
+                <CardDescription>{status.lastError}</CardDescription>
+              </CardHeader>
+            </Card>
+          ) : null}
+        </div>
+
+        <div className="grid content-start gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("discordRpc.controls.title")}</CardTitle>
+              <CardDescription>{availabilityDescription}</CardDescription>
+              <CardAction>
+                <Badge variant={status.active ? "default" : "secondary"}>
+                  {availability}
+                </Badge>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <SettingSwitch
+                label={t("discordRpc.enable")}
+                description={t("discordRpc.enable.description")}
+                checked={settings.discordRpc.enabled}
+                disabled={!status.configured}
+                onCheckedChange={(enabled) =>
+                  onSettingsChange({
+                    ...settings,
+                    discordRpc: { ...settings.discordRpc, enabled },
+                  })
+                }
+              />
+              {!skyProcessRunning ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!status.configured}
+                  onClick={() =>
+                    onSettingsChange({
+                      ...settings,
+                      discordRpc: {
+                        ...settings.discordRpc,
+                        enabled: true,
+                        requireSkyDetection:
+                          !settings.discordRpc.requireSkyDetection,
+                      },
+                    })
+                  }
+                >
+                  <Gamepad2 data-icon="inline-start" />
+                  {settings.discordRpc.requireSkyDetection
+                    ? t("discordRpc.previewWithoutSky")
+                    : t("discordRpc.useSkyDetection")}
+                </Button>
               ) : null}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{t("discordRpc.links.title")}</CardTitle>
+              <CardTitle>{t("discordRpc.activity.title")}</CardTitle>
               <CardDescription>
-                {t("discordRpc.links.description")}
+                {t("discordRpc.activity.description")}
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              <Button asChild variant="secondary">
-                <a href={ISEKAI_DISCORD_URL} target="_blank" rel="noreferrer">
-                  <ExternalLink data-icon="inline-start" />
-                  Isekai
-                </a>
-              </Button>
-              <Button asChild variant="secondary">
-                <a href={SKY_DISCORD_URL} target="_blank" rel="noreferrer">
-                  <ExternalLink data-icon="inline-start" />
-                  Sky
-                </a>
-              </Button>
+            <CardContent className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="discord-rpc-mode">{t("discordRpc.mode")}</Label>
+                <PlatformSelect
+                  id="discord-rpc-mode"
+                  className="w-full"
+                  value={settings.discordRpc.mode}
+                  onValueChange={(mode) =>
+                    onSettingsChange({
+                      ...settings,
+                      discordRpc: {
+                        ...settings.discordRpc,
+                        mode: mode as AppSettings["discordRpc"]["mode"],
+                      },
+                    })
+                  }
+                  options={DISCORD_RPC_MODE_OPTIONS.map((mode) => ({
+                    value: mode.value,
+                    label: t(mode.labelKey),
+                  }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t(selectedMode.descriptionKey)}
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="discord-rpc-preset">
+                  {t("discordRpc.safePreset")}
+                </Label>
+                <PlatformSelect
+                  id="discord-rpc-preset"
+                  className="w-full"
+                  value={settings.discordRpc.safePreset}
+                  onValueChange={(safePreset) =>
+                    onSettingsChange({
+                      ...settings,
+                      discordRpc: {
+                        ...settings.discordRpc,
+                        safePreset:
+                          safePreset as AppSettings["discordRpc"]["safePreset"],
+                      },
+                    })
+                  }
+                  options={DISCORD_RPC_PRESET_OPTIONS.map((preset) => ({
+                    value: preset.value,
+                    label: t(preset.labelKey),
+                  }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t(selectedPreset.descriptionKey)}
+                </p>
+              </div>
+              <Separator />
+              <SettingSwitch
+                label={t("discordRpc.showButtons")}
+                description={t("discordRpc.showButtons.description")}
+                checked={settings.discordRpc.showButtons}
+                onCheckedChange={(showButtons) =>
+                  onSettingsChange({
+                    ...settings,
+                    discordRpc: { ...settings.discordRpc, showButtons },
+                  })
+                }
+              />
+              <SettingSwitch
+                label={t("discordRpc.requireSkyDetection")}
+                description={t("discordRpc.requireSkyDetection.description")}
+                checked={settings.discordRpc.requireSkyDetection}
+                onCheckedChange={(requireSkyDetection) =>
+                  onSettingsChange({
+                    ...settings,
+                    discordRpc: { ...settings.discordRpc, requireSkyDetection },
+                  })
+                }
+              />
             </CardContent>
           </Card>
         </div>
       </div>
     </>
   );
+}
+
+function formatDiscordElapsed(startTimestamp: number | undefined, nowMs: number) {
+  if (!startTimestamp) {
+    return "00:00";
+  }
+
+  const totalSeconds = Math.max(0, Math.floor(nowMs / 1_000 - startTimestamp));
+  const hours = Math.floor(totalSeconds / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+    : `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 export type SettingsTab = "appearance" | "events" | "hotkeys" | "time";
@@ -1906,314 +2028,333 @@ export function SettingsPage({
         <SettingsTabTransition activeTab={activeTab}>
           {(visibleTab) =>
             visibleTab === "appearance" ? (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <SettingsPanel
-              icon={<Palette />}
-              title={t("settings.appearance.title")}
-              description={t("settings.appearance.description")}
-            >
-              <SettingGroup label={t("settings.info.theme")}>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {(["dark", "light", "system"] as const).map((theme) => (
-                    <ChoiceButton
-                      key={theme}
-                      selected={settings.theme === theme}
-                      label={
-                        theme === "system"
-                          ? t("common.system")
-                          : theme === "dark"
-                            ? t("settings.theme.dark.label")
-                            : t("settings.theme.light.label")
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <SettingsPanel
+                  icon={<Palette />}
+                  title={t("settings.appearance.title")}
+                  description={t("settings.appearance.description")}
+                >
+                  <SettingGroup label={t("settings.info.theme")}>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {(["dark", "light", "system"] as const).map((theme) => (
+                        <ChoiceButton
+                          key={theme}
+                          selected={settings.theme === theme}
+                          label={
+                            theme === "system"
+                              ? t("common.system")
+                              : theme === "dark"
+                                ? t("settings.theme.dark.label")
+                                : t("settings.theme.light.label")
+                          }
+                          description={
+                            theme === "system"
+                              ? t("settings.theme.system.description")
+                              : theme === "dark"
+                                ? t("settings.theme.dark.description")
+                                : t("settings.theme.light.description")
+                          }
+                          icon={<Monitor className="size-4" />}
+                          onClick={() =>
+                            onSettingsChange({ ...settings, theme })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </SettingGroup>
+                  <Separator />
+                  <SettingGroup label={t("common.language")}>
+                    <PlatformSelect
+                      id="language"
+                      className="w-full"
+                      value={settings.language}
+                      onValueChange={(language) =>
+                        onSettingsChange({
+                          ...settings,
+                          language: language as LocaleCode,
+                        })
                       }
-                      description={
-                        theme === "system"
-                          ? t("settings.theme.system.description")
-                          : theme === "dark"
-                            ? t("settings.theme.dark.description")
-                            : t("settings.theme.light.description")
+                      options={SUPPORTED_LOCALES.map((locale) => ({
+                        value: locale.code,
+                        label: `${locale.nativeName}${
+                          locale.nativeName === locale.englishName
+                            ? ""
+                            : ` / ${locale.englishName}`
+                        }`,
+                      }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t("settings.language.description")}
+                    </p>
+                  </SettingGroup>
+                  <Separator />
+                  <SettingGroup label={t("settings.accentColor")}>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                      {ACCENT_OPTIONS.map((accent) => (
+                        <Button
+                          key={accent.id}
+                          type="button"
+                          variant={
+                            settings.appearance.accentColor === accent.id
+                              ? "default"
+                              : "secondary"
+                          }
+                          className="h-10 justify-start gap-2"
+                          onClick={() =>
+                            onSettingsChange({
+                              ...settings,
+                              appearance: {
+                                ...settings.appearance,
+                                accentColor: accent.id,
+                              },
+                            })
+                          }
+                        >
+                          <span
+                            className="size-4 shrink-0 rounded-full border border-border"
+                            style={{ background: accent.swatch }}
+                          />
+                          {accent.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </SettingGroup>
+                  <Separator />
+                  <SettingGroup label={t("settings.interfaceFont")}>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                      {FONT_OPTIONS.map((font) => (
+                        <Button
+                          key={font.id}
+                          type="button"
+                          variant={
+                            settings.appearance.fontFamily === font.id
+                              ? "default"
+                              : "secondary"
+                          }
+                          className="h-10 justify-start text-sm"
+                          style={{ fontFamily: font.family }}
+                          onClick={() =>
+                            onSettingsChange({
+                              ...settings,
+                              appearance: {
+                                ...settings.appearance,
+                                fontFamily: font.id,
+                              },
+                            })
+                          }
+                        >
+                          {font.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </SettingGroup>
+                </SettingsPanel>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">
+                      {t("settings.currentStyle.title")}
+                    </CardTitle>
+                    <CardDescription>
+                      {t("settings.currentStyle.description")}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-3">
+                    <InfoRow
+                      label={t("settings.info.theme")}
+                      value={settings.theme}
+                    />
+                    <InfoRow
+                      label={t("common.language")}
+                      value={settings.language}
+                    />
+                    <InfoRow
+                      label={t("settings.info.accent")}
+                      value={selectedAccent.label}
+                    />
+                    <InfoRow
+                      label={t("settings.info.font")}
+                      value={selectedFont.label}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            ) : visibleTab === "events" ? (
+              <SettingsPanel
+                icon={<CalendarClock />}
+                title={t("settings.events.title")}
+                description={t("settings.events.description")}
+              >
+                <div className="grid gap-2 md:grid-cols-2">
+                  {EVENT_DEFINITIONS.map((definition) => (
+                    <div
+                      key={definition.id}
+                      className="rounded-md border border-border bg-card/70 p-3 transition-colors hover:bg-muted/25"
+                    >
+                      <SettingSwitch
+                        label={definition.title}
+                        description={[
+                          definition.location,
+                          definition.category,
+                          definition.source,
+                        ]
+                          .filter(Boolean)
+                          .join(" - ")}
+                        checked={settings.events[definition.id] !== false}
+                        onCheckedChange={(checked) =>
+                          onSettingsChange({
+                            ...settings,
+                            events: {
+                              ...settings.events,
+                              [definition.id]: checked,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </SettingsPanel>
+            ) : visibleTab === "hotkeys" ? (
+              <SettingsPanel
+                icon={<Keyboard />}
+                title={t("settings.hotkeys.title")}
+                description={t("settings.hotkeys.description")}
+              >
+                <div className="grid gap-3">
+                  {hotkeyRows.map((row) => (
+                    <SettingRow
+                      key={row.id}
+                      label={row.label}
+                      description={row.description}
+                      control={
+                        <Input
+                          id={`${row.id}-hotkey`}
+                          readOnly
+                          className="cursor-pointer font-mono"
+                          value={settings.hotkeys[row.id]}
+                          onClick={() =>
+                            setCapturingHotkey({ id: row.id, label: row.label })
+                          }
+                          onFocus={() =>
+                            setCapturingHotkey({ id: row.id, label: row.label })
+                          }
+                        />
                       }
-                      icon={<Monitor className="size-4" />}
-                      onClick={() => onSettingsChange({ ...settings, theme })}
                     />
                   ))}
                 </div>
-              </SettingGroup>
-              <Separator />
-              <SettingGroup label={t("common.language")}>
-                <NativeSelect
-                  id="language"
-                  className="w-full"
-                  value={settings.language}
-                  onChange={(event) =>
-                    onSettingsChange({
-                      ...settings,
-                      language: event.target.value as LocaleCode,
-                    })
-                  }
-                >
-                  {SUPPORTED_LOCALES.map((locale) => (
-                    <NativeSelectOption key={locale.code} value={locale.code}>
-                      {locale.nativeName}
-                      {locale.nativeName === locale.englishName
-                        ? ""
-                        : ` / ${locale.englishName}`}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-                <p className="text-xs text-muted-foreground">
-                  {t("settings.language.description")}
-                </p>
-              </SettingGroup>
-              <Separator />
-              <SettingGroup label={t("settings.accentColor")}>
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                  {ACCENT_OPTIONS.map((accent) => (
-                    <Button
-                      key={accent.id}
-                      type="button"
-                      variant={
-                        settings.appearance.accentColor === accent.id
-                          ? "default"
-                          : "secondary"
-                      }
-                      className="h-10 justify-start gap-2"
-                      onClick={() =>
-                        onSettingsChange({
-                          ...settings,
-                          appearance: {
-                            ...settings.appearance,
-                            accentColor: accent.id,
-                          },
-                        })
-                      }
-                    >
-                      <span
-                        className="size-4 shrink-0 rounded-full border border-border"
-                        style={{ background: accent.swatch }}
-                      />
-                      {accent.label}
-                    </Button>
-                  ))}
-                </div>
-              </SettingGroup>
-              <Separator />
-              <SettingGroup label={t("settings.interfaceFont")}>
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                  {FONT_OPTIONS.map((font) => (
-                    <Button
-                      key={font.id}
-                      type="button"
-                      variant={
-                        settings.appearance.fontFamily === font.id
-                          ? "default"
-                          : "secondary"
-                      }
-                      className="h-10 justify-start text-sm"
-                      style={{ fontFamily: font.family }}
-                      onClick={() =>
-                        onSettingsChange({
-                          ...settings,
-                          appearance: {
-                            ...settings.appearance,
-                            fontFamily: font.id,
-                          },
-                        })
-                      }
-                    >
-                      {font.label}
-                    </Button>
-                  ))}
-                </div>
-              </SettingGroup>
-            </SettingsPanel>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{t("settings.currentStyle.title")}</CardTitle>
-                <CardDescription>
-                  {t("settings.currentStyle.description")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3">
-                <InfoRow label={t("settings.info.theme")} value={settings.theme} />
-                <InfoRow label={t("common.language")} value={settings.language} />
-                <InfoRow label={t("settings.info.accent")} value={selectedAccent.label} />
-                <InfoRow label={t("settings.info.font")} value={selectedFont.label} />
-              </CardContent>
-            </Card>
-          </div>
-            ) : visibleTab === "events" ? (
-          <SettingsPanel
-            icon={<CalendarClock />}
-            title={t("settings.events.title")}
-            description={t("settings.events.description")}
-          >
-            <div className="grid gap-2 md:grid-cols-2">
-              {EVENT_DEFINITIONS.map((definition) => (
-                <div
-                  key={definition.id}
-                  className="rounded-md border border-border bg-card/70 p-3 transition-colors hover:bg-muted/25"
+                {hotkeyError ? (
+                  <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                    <p>{hotkeyError}</p>
+                  </div>
+                ) : null}
+              </SettingsPanel>
+            ) : visibleTab === "time" ? (
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <SettingsPanel
+                  icon={<Clock />}
+                  title={t("settings.time.title")}
+                  description={t("settings.time.description")}
                 >
                   <SettingSwitch
-                    label={definition.title}
-                    description={[
-                      definition.location,
-                      definition.category,
-                      definition.source,
-                    ]
-                      .filter(Boolean)
-                      .join(" - ")}
-                    checked={settings.events[definition.id] !== false}
-                    onCheckedChange={(checked) =>
+                    label={t("settings.time.showSky")}
+                    description={t("settings.time.showSky.description")}
+                    checked={settings.display.showSkyTime}
+                    onCheckedChange={(showSkyTime) =>
                       onSettingsChange({
                         ...settings,
-                        events: {
-                          ...settings.events,
-                          [definition.id]: checked,
-                        },
+                        display: { ...settings.display, showSkyTime },
                       })
                     }
                   />
-                </div>
-              ))}
-            </div>
-          </SettingsPanel>
-            ) : visibleTab === "hotkeys" ? (
-          <SettingsPanel
-            icon={<Keyboard />}
-            title={t("settings.hotkeys.title")}
-            description={t("settings.hotkeys.description")}
-          >
-            <div className="grid gap-3">
-              {hotkeyRows.map((row) => (
-                <SettingRow
-                  key={row.id}
-                  label={row.label}
-                  description={row.description}
-                  control={
-                    <Input
-                      id={`${row.id}-hotkey`}
-                      readOnly
-                      className="cursor-pointer font-mono"
-                      value={settings.hotkeys[row.id]}
-                      onClick={() =>
-                        setCapturingHotkey({ id: row.id, label: row.label })
-                      }
-                      onFocus={() =>
-                        setCapturingHotkey({ id: row.id, label: row.label })
-                      }
-                    />
-                  }
-                />
-              ))}
-            </div>
-            {hotkeyError ? (
-              <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-                <p>{hotkeyError}</p>
-              </div>
-            ) : null}
-          </SettingsPanel>
-            ) : visibleTab === "time" ? (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <SettingsPanel
-              icon={<Clock />}
-              title={t("settings.time.title")}
-              description={t("settings.time.description")}
-            >
-              <SettingSwitch
-                label={t("settings.time.showSky")}
-                description={t("settings.time.showSky.description")}
-                checked={settings.display.showSkyTime}
-                onCheckedChange={(showSkyTime) =>
-                  onSettingsChange({
-                    ...settings,
-                    display: { ...settings.display, showSkyTime },
-                  })
-                }
-              />
-              <SettingSwitch
-                label={t("settings.time.showLocal")}
-                description={t("settings.time.showLocal.description")}
-                checked={settings.display.showLocalTime}
-                onCheckedChange={(showLocalTime) =>
-                  onSettingsChange({
-                    ...settings,
-                    display: { ...settings.display, showLocalTime },
-                  })
-                }
-              />
-              <Separator />
-              <SettingGroup label={t("settings.time.format")}>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {(["system", "12h", "24h"] as const).map((timeFormat) => (
-                    <ChoiceButton
-                      key={timeFormat}
-                      selected={settings.display.timeFormat === timeFormat}
-                      label={
-                        timeFormat === "system"
-                          ? t("common.system")
-                          : timeFormat === "12h"
-                            ? t("settings.time.format12")
-                            : t("settings.time.format24")
-                      }
-                      description={
-                        timeFormat === "system"
-                          ? t("settings.time.formatSystem.description")
-                          : timeFormat === "12h"
-                            ? t("settings.time.format12.description")
-                            : t("settings.time.format24.description")
-                      }
-                      onClick={() =>
+                  <SettingSwitch
+                    label={t("settings.time.showLocal")}
+                    description={t("settings.time.showLocal.description")}
+                    checked={settings.display.showLocalTime}
+                    onCheckedChange={(showLocalTime) =>
+                      onSettingsChange({
+                        ...settings,
+                        display: { ...settings.display, showLocalTime },
+                      })
+                    }
+                  />
+                  <Separator />
+                  <SettingGroup label={t("settings.time.format")}>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {(["system", "12h", "24h"] as const).map((timeFormat) => (
+                        <ChoiceButton
+                          key={timeFormat}
+                          selected={settings.display.timeFormat === timeFormat}
+                          label={
+                            timeFormat === "system"
+                              ? t("common.system")
+                              : timeFormat === "12h"
+                                ? t("settings.time.format12")
+                                : t("settings.time.format24")
+                          }
+                          description={
+                            timeFormat === "system"
+                              ? t("settings.time.formatSystem.description")
+                              : timeFormat === "12h"
+                                ? t("settings.time.format12.description")
+                                : t("settings.time.format24.description")
+                          }
+                          onClick={() =>
+                            onSettingsChange({
+                              ...settings,
+                              display: { ...settings.display, timeFormat },
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </SettingGroup>
+                  <SettingGroup label={t("settings.time.localTimezone")}>
+                    <PlatformSelect
+                      id="local-timezone"
+                      className="w-full"
+                      value={settings.display.localTimeZone}
+                      onValueChange={(localTimeZone) =>
                         onSettingsChange({
                           ...settings,
-                          display: { ...settings.display, timeFormat },
+                          display: {
+                            ...settings.display,
+                            localTimeZone,
+                          },
                         })
                       }
+                      options={getTimeZoneOptions(
+                        settings.display.localTimeZone,
+                      ).map((timeZone) => ({
+                        value: timeZone,
+                        label: timeZone,
+                      }))}
                     />
-                  ))}
-                </div>
-              </SettingGroup>
-              <SettingGroup label={t("settings.time.localTimezone")}>
-                <NativeSelect
-                  id="local-timezone"
-                  className="w-full"
-                  value={settings.display.localTimeZone}
-                  onChange={(event) =>
-                    onSettingsChange({
-                      ...settings,
-                      display: {
-                        ...settings.display,
-                        localTimeZone: event.target.value,
-                      },
-                    })
-                  }
-                >
-                  {getTimeZoneOptions(settings.display.localTimeZone).map(
-                    (timeZone) => (
-                      <NativeSelectOption key={timeZone} value={timeZone}>
-                        {timeZone}
-                      </NativeSelectOption>
-                    ),
-                  )}
-                </NativeSelect>
-              </SettingGroup>
-            </SettingsPanel>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Info className="size-4 text-primary" />
-                  {t("common.about")}
-                </CardTitle>
-                <CardDescription>
-                  {t("settings.time.aboutDescription")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3">
-                <InfoRow label={t("settings.info.timezone")} value={settings.display.localTimeZone} />
-                <InfoRow label={t("settings.info.format")} value={settings.display.timeFormat} />
-              </CardContent>
-            </Card>
-          </div>
+                  </SettingGroup>
+                </SettingsPanel>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Info className="size-4 text-primary" />
+                      {t("common.about")}
+                    </CardTitle>
+                    <CardDescription>
+                      {t("settings.time.aboutDescription")}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-3">
+                    <InfoRow
+                      label={t("settings.info.timezone")}
+                      value={settings.display.localTimeZone}
+                    />
+                    <InfoRow
+                      label={t("settings.info.format")}
+                      value={settings.display.timeFormat}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             ) : null
           }
         </SettingsTabTransition>
@@ -2305,7 +2446,8 @@ export function UpdatesPage({
           <CardContent className="grid gap-4">
             {updateState.status === "available" ? (
               <div className="rounded-md border border-primary/25 bg-primary/10 p-3 text-sm text-primary">
-                Version {updateState.latestVersion} is ready to download and install.
+                Version {updateState.latestVersion} is ready to download and
+                install.
               </div>
             ) : null}
             {installing || updateState.status === "installed" ? (
@@ -2358,7 +2500,9 @@ export function UpdatesPage({
             ) : null}
             <div className="grid gap-2">
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                <h2 className="min-w-0 text-sm font-semibold">{changelogTitle}</h2>
+                <h2 className="min-w-0 text-sm font-semibold">
+                  {changelogTitle}
+                </h2>
                 {updateState.status === "current" ? (
                   <Badge variant="secondary" className="rounded-sm">
                     Installed
@@ -2378,7 +2522,9 @@ export function UpdatesPage({
         <Card className="min-w-0">
           <CardHeader>
             <CardTitle className="text-base">Update Details</CardTitle>
-            <CardDescription>Simple status for this installed app.</CardDescription>
+            <CardDescription>
+              Simple status for this installed app.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid min-w-0 gap-3 text-sm text-muted-foreground">
             <InfoRow
@@ -2387,7 +2533,11 @@ export function UpdatesPage({
             />
             <InfoRow
               label="Newest version"
-              value={updateState.latestVersion || updateState.currentVersion || "Checking..."}
+              value={
+                updateState.latestVersion ||
+                updateState.currentVersion ||
+                "Checking..."
+              }
             />
             <InfoRow label="Release date" value={publishedLabel} />
             <Separator className="my-1" />
@@ -2426,8 +2576,12 @@ export function Overlay({
     () => events.slice(0, settings.overlay.maxEvents),
     [events, settings.overlay.maxEvents],
   );
-  const rowRadius = Math.max(0, Math.min(settings.overlay.cornerRadius - 6, 18));
-  const [routeState, setRouteState] = useState<SkyActiveRouteTargetState | null>(null);
+  const rowRadius = Math.max(
+    0,
+    Math.min(settings.overlay.cornerRadius - 6, 18),
+  );
+  const [routeState, setRouteState] =
+    useState<SkyActiveRouteTargetState | null>(null);
   const [activeArea, setActiveArea] = useState<SkyAreaRoute | null>(null);
   const [miniMapPins, setMiniMapPins] = useState<SkyMiniMapPin[]>([]);
 
@@ -2460,7 +2614,8 @@ export function Overlay({
   }, [planner]);
 
   const overlayMode =
-    settings.overlay.mode === "mini-map" && (!activeArea?.imageUrl || miniMapPins.length === 0)
+    settings.overlay.mode === "mini-map" &&
+    (!activeArea?.imageUrl || miniMapPins.length === 0)
       ? "route"
       : settings.overlay.mode;
 
@@ -2479,9 +2634,8 @@ export function Overlay({
       return;
     }
 
-    const unlistenPromise = listen<boolean>(
-      "sky-overlay-visibility",
-      (event) => setVisible(event.payload),
+    const unlistenPromise = listen<boolean>("sky-overlay-visibility", (event) =>
+      setVisible(event.payload),
     );
 
     return () => {
@@ -2574,7 +2728,10 @@ function ClockOverlayContent({
 }) {
   return (
     <>
-      <OverlayHeader title="Sky Clock" shortcut={settings.hotkeys.toggleOverlay} />
+      <OverlayHeader
+        title="Sky Clock"
+        shortcut={settings.hotkeys.toggleOverlay}
+      />
       <div className="theme-scrollbar grid min-h-0 flex-1 gap-2 overflow-y-auto">
         {events.map((event) => (
           <div
@@ -2584,9 +2741,13 @@ function ClockOverlayContent({
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium leading-5">{event.title}</p>
+                <p className="truncate text-sm font-medium leading-5">
+                  {event.title}
+                </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {[event.location, event.phaseLabel].filter(Boolean).join(" - ")}
+                  {[event.location, event.phaseLabel]
+                    .filter(Boolean)
+                    .join(" - ")}
                 </p>
               </div>
               <StatusBadge status={event.status} />
@@ -2597,7 +2758,9 @@ function ClockOverlayContent({
               </p>
               <p className="text-right text-[11px] text-muted-foreground">
                 {settings.display.showLocalTime ? event.localTimeLabel : null}
-                {settings.display.showSkyTime ? ` / ${event.skyTimeLabel}` : null}
+                {settings.display.showSkyTime
+                  ? ` / ${event.skyTimeLabel}`
+                  : null}
               </p>
             </div>
           </div>
@@ -2627,7 +2790,10 @@ function RouteOverlayContent({
   return (
     <>
       {showHeader ? (
-        <OverlayHeader title="Route" shortcut={settings.hotkeys.cycleOverlayMode} />
+        <OverlayHeader
+          title="Route"
+          shortcut={settings.hotkeys.cycleOverlayMode}
+        />
       ) : null}
       <div className="grid gap-2">
         <div
@@ -2713,13 +2879,17 @@ function MiniMapOverlayContent({
     );
   }
 
-  const expanded = planner?.activeRoute.miniMapExpanded ?? settings.overlay.miniMap.expanded;
+  const expanded =
+    planner?.activeRoute.miniMapExpanded ?? settings.overlay.miniMap.expanded;
   const size = expanded ? settings.overlay.miniMap.size : 220;
   const target = routeState?.target;
 
   return (
     <>
-      <OverlayHeader title="Mini Map" shortcut={settings.hotkeys.toggleMiniMapExpanded} />
+      <OverlayHeader
+        title="Mini Map"
+        shortcut={settings.hotkeys.toggleMiniMapExpanded}
+      />
       <div className="grid gap-2">
         <div
           className="relative overflow-hidden border border-border/70 bg-card"
@@ -2762,7 +2932,8 @@ function MiniMapOverlayContent({
         </div>
         <div className="flex items-center justify-between gap-2 rounded-sm border border-border/60 bg-muted/30 px-2 py-1.5 text-xs">
           <span>
-            {routeState?.completedCount ?? 0} / {routeState?.total ?? 0} complete
+            {routeState?.completedCount ?? 0} / {routeState?.total ?? 0}{" "}
+            complete
           </span>
           <span>{expanded ? "expanded" : "compact"}</span>
         </div>
@@ -2804,9 +2975,7 @@ function ClockRouteOverlayContent({
   settings: AppSettings;
   rowRadius: number;
 }) {
-  const canShowMiniMap =
-    Boolean(activeArea?.imageUrl) &&
-    pins.length > 0;
+  const canShowMiniMap = Boolean(activeArea?.imageUrl) && pins.length > 0;
   const clockLimit = canShowMiniMap ? 2 : 3;
   const clockEvents = events.slice(
     0,
@@ -2815,7 +2984,10 @@ function ClockRouteOverlayContent({
 
   return (
     <>
-      <OverlayHeader title="Clock + Route" shortcut={settings.hotkeys.cycleOverlayMode} />
+      <OverlayHeader
+        title="Clock + Route"
+        shortcut={settings.hotkeys.cycleOverlayMode}
+      />
       {clockEvents.length > 0 ? (
         <div className="mb-2 grid gap-1.5">
           {clockEvents.map((event) => (
@@ -2834,7 +3006,9 @@ function ClockRouteOverlayContent({
                 </p>
                 <p className="text-right text-[11px] text-muted-foreground">
                   {settings.display.showLocalTime ? event.localTimeLabel : null}
-                  {settings.display.showSkyTime ? ` / ${event.skyTimeLabel}` : null}
+                  {settings.display.showSkyTime
+                    ? ` / ${event.skyTimeLabel}`
+                    : null}
                 </p>
               </div>
             </div>
@@ -2864,7 +3038,11 @@ function ClockRouteOverlayContent({
 }
 
 function UpdateStatusIcon({ status }: { status: AppUpdateState["status"] }) {
-  if (status === "available" || status === "downloading" || status === "installing") {
+  if (
+    status === "available" ||
+    status === "downloading" ||
+    status === "installing"
+  ) {
     return <Download className="size-4 text-primary" />;
   }
 
@@ -2920,7 +3098,9 @@ function MarkdownChangelog({ content }: { content: string }) {
       remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
-          <h1 className="mb-3 text-lg font-semibold text-foreground">{children}</h1>
+          <h1 className="mb-3 text-lg font-semibold text-foreground">
+            {children}
+          </h1>
         ),
         h2: ({ children }) => (
           <h2 className="mb-2 mt-4 text-base font-semibold text-foreground first:mt-0">
@@ -2968,7 +3148,9 @@ function MarkdownChangelog({ content }: { content: string }) {
             </code>
           );
         },
-        pre: ({ children }) => <pre className="my-3 overflow-x-auto">{children}</pre>,
+        pre: ({ children }) => (
+          <pre className="my-3 overflow-x-auto">{children}</pre>
+        ),
         blockquote: ({ children }) => (
           <blockquote className="my-3 border-l-2 border-primary/50 pl-3 text-muted-foreground">
             {children}
@@ -2977,7 +3159,9 @@ function MarkdownChangelog({ content }: { content: string }) {
         hr: () => <Separator className="my-4" />,
         table: ({ children }) => (
           <div className="my-3 overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs">{children}</table>
+            <table className="w-full border-collapse text-left text-xs">
+              {children}
+            </table>
           </div>
         ),
         th: ({ children }) => (
@@ -3009,7 +3193,8 @@ function OverlayPreview({
       <CardHeader>
         <CardTitle className="text-base">Overlay Preview</CardTitle>
         <CardDescription>
-          {settings.overlay.maxEvents} rows at {Math.round(settings.overlay.opacity * 100)}% opacity,
+          {settings.overlay.maxEvents} rows at{" "}
+          {Math.round(settings.overlay.opacity * 100)}% opacity,
           {` ${settings.overlay.cornerRadius}px`} radius.
         </CardDescription>
       </CardHeader>
@@ -3096,14 +3281,20 @@ function EventRow({
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-medium">{event.title}</p>
           <StatusBadge status={event.status} />
-          {event.source === "community" ? <Badge variant="outline">predicted</Badge> : null}
+          {event.source === "community" ? (
+            <Badge variant="outline">predicted</Badge>
+          ) : null}
         </div>
         <p className="text-sm text-muted-foreground">
-          {[event.location, event.phaseLabel, event.rewardLabel].filter(Boolean).join(" - ")}
+          {[event.location, event.phaseLabel, event.rewardLabel]
+            .filter(Boolean)
+            .join(" - ")}
         </p>
       </div>
       <div className="text-left md:text-right">
-        <p className="font-semibold tabular-nums">{formatDuration(event.countdownMs)}</p>
+        <p className="font-semibold tabular-nums">
+          {formatDuration(event.countdownMs)}
+        </p>
         <p className="text-xs text-muted-foreground">
           {event.localTimeLabel} local / {event.skyTimeLabel}
         </p>
@@ -3142,8 +3333,7 @@ function StatusBadge({ status }: { status: EventInstance["status"] }) {
           "border-chart-2/25 bg-chart-2/10 text-chart-4 dark:text-chart-2",
         status === "upcoming" &&
           "border-border bg-secondary text-secondary-foreground",
-        status === "ended" &&
-          "border-border bg-muted/40 text-muted-foreground",
+        status === "ended" && "border-border bg-muted/40 text-muted-foreground",
       )}
     >
       {status === "endingSoon" ? "ending" : status}
@@ -3199,7 +3389,9 @@ function AreaRouteCard({
           />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 to-transparent p-4">
             <p className="text-lg font-semibold">{areaRoute.name}</p>
-            <p className="text-sm text-muted-foreground">{areaRoute.realmName}</p>
+            <p className="text-sm text-muted-foreground">
+              {areaRoute.realmName}
+            </p>
           </div>
         </div>
       ) : null}
@@ -3233,7 +3425,11 @@ function AreaRouteCard({
             </p>
             <div className="flex flex-wrap gap-1.5">
               {connections.slice(0, 12).map((area) => (
-                <Badge key={area.guid} variant="secondary" className="rounded-sm">
+                <Badge
+                  key={area.guid}
+                  variant="secondary"
+                  className="rounded-sm"
+                >
                   {area.name}
                 </Badge>
               ))}
@@ -3279,7 +3475,10 @@ function RouteTargetRow({
           {[target.areaName, target.description].filter(Boolean).join(" - ")}
         </p>
       </div>
-      <Badge variant={complete ? "default" : "secondary"} className="rounded-sm">
+      <Badge
+        variant={complete ? "default" : "secondary"}
+        className="rounded-sm"
+      >
         {complete ? "Done" : "Open"}
       </Badge>
     </div>
@@ -3446,7 +3645,9 @@ function CandleRunMapPreview({
               aria-label={zoomed ? "Show full map" : "Zoom map"}
               className={cn(
                 "flex max-h-[calc(100svh-3rem)] max-w-[calc(100svw-3rem)] items-center justify-center overflow-hidden outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
-                zoomed ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in",
+                zoomed
+                  ? "cursor-grab active:cursor-grabbing"
+                  : "cursor-zoom-in",
               )}
               onClick={toggleImageZoom}
               onPointerDown={startImageDrag}
@@ -3523,7 +3724,9 @@ function CandleRunButton({
         {active ? <Badge className="rounded-sm">Active</Badge> : null}
       </div>
       <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-        <span>{completedGroups}/{run.groupCount} groups</span>
+        <span>
+          {completedGroups}/{run.groupCount} groups
+        </span>
         <span>{run.waxCount} wax</span>
       </div>
     </button>
@@ -3605,7 +3808,10 @@ function GoalRow({
         </Badge>
       </div>
       <p className="text-sm text-muted-foreground">
-        {[goal.currencyNeeded ? `${goal.currencyNeeded} currency` : null, goal.dueDate]
+        {[
+          goal.currencyNeeded ? `${goal.currencyNeeded} currency` : null,
+          goal.dueDate,
+        ]
           .filter(Boolean)
           .join(" - ")}
       </p>
@@ -3651,13 +3857,21 @@ function ItemCard({
           <p className="truncate font-medium">{item.name}</p>
           <p className="text-sm text-muted-foreground">{item.type}</p>
         </div>
-        <Button type="button" size="icon-sm" variant={wished ? "default" : "secondary"} onClick={onToggleWishlist}>
+        <Button
+          type="button"
+          size="icon-sm"
+          variant={wished ? "default" : "secondary"}
+          onClick={onToggleWishlist}
+        >
           <Star className="size-4" />
         </Button>
       </div>
       <div className="grid gap-1">
         {item.origins.slice(0, 2).map((origin, index) => (
-          <p key={`${origin.kind}-${origin.name}-${index}`} className="truncate text-xs text-muted-foreground">
+          <p
+            key={`${origin.kind}-${origin.name}-${index}`}
+            className="truncate text-xs text-muted-foreground"
+          >
             {origin.kind}: {origin.name}
           </p>
         ))}
@@ -3736,9 +3950,7 @@ function HotkeyCaptureDialog({
             <CardTitle id="hotkey-capture-title" className="text-base">
               Press a shortcut
             </CardTitle>
-            <CardDescription>
-              {target.label}
-            </CardDescription>
+            <CardDescription>{target.label}</CardDescription>
           </div>
           <Button
             type="button"
@@ -3762,7 +3974,8 @@ function HotkeyCaptureDialog({
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Escape cancels. The shortcut saves automatically after the final key.
+            Escape cancels. The shortcut saves automatically after the final
+            key.
           </p>
         </CardContent>
       </Card>
@@ -4008,11 +4221,7 @@ function SliderSetting({
   );
 }
 
-function candleGroupKey(
-  runGuid: string,
-  group: SkyCandleGroup,
-  index: number,
-) {
+function candleGroupKey(runGuid: string, group: SkyCandleGroup, index: number) {
   return `${runGuid}:${index}:${group.name}`;
 }
 
@@ -4021,8 +4230,8 @@ function countCompletedRunGroups(
   completedGroups: Record<string, boolean>,
   groups: SkyCandleGroup[],
 ) {
-  return groups.filter((group, index) =>
-    completedGroups[candleGroupKey(runGuid, group, index)],
+  return groups.filter(
+    (group, index) => completedGroups[candleGroupKey(runGuid, group, index)],
   ).length;
 }
 

@@ -1,6 +1,7 @@
 import type * as React from "react";
 import {
   CalendarDays,
+  Gamepad2,
   Eye,
   Flame,
   Map,
@@ -76,6 +77,7 @@ const sections: Array<{
   {
     titleKey: "nav.system",
     items: [
+      { id: "discord-rpc", titleKey: "nav.discordRpc", icon: Gamepad2 },
       { id: "settings", titleKey: "nav.settings", icon: Settings },
       { id: "updates", titleKey: "nav.updates", icon: Upload },
     ],
