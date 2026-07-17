@@ -1,186 +1,148 @@
-const repo = "builtbyshnk/isekai_skycotl";
-const releasesUrl = `https://github.com/${repo}/releases/latest`;
-const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
-const currentVersion = "0.1.6";
+(function () {
+  "use strict";
 
-const downloadButton = document.querySelector("#downloadButton");
-const alternateDownloadLink = document.querySelector("#alternateDownloadLink");
-const packageVersion = document.querySelector("#packageVersion");
-const cursorLight = document.querySelector(".cursor-light");
-const previewVideo = document.querySelector(".app-window video");
-const themeToggle = document.querySelector(".theme-toggle");
-const themeToggleText = document.querySelector(".theme-toggle-text");
-const navLinks = [...document.querySelectorAll("nav a")];
-const sectionNavLinks = navLinks.filter((link) =>
-  link.getAttribute("href")?.startsWith("#"),
-);
-const sections = sectionNavLinks
-  .map((link) => document.querySelector(link.getAttribute("href")))
-  .filter(Boolean);
+  var root = document.documentElement;
 
-packageVersion.textContent = currentVersion;
-
-function getCurrentTheme() {
-  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-}
-
-function setTheme(theme, persist = true) {
-  const nextTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.dataset.theme = nextTheme;
-
-  if (persist) {
-    try {
-      localStorage.setItem("isekai-docs-theme", nextTheme);
-    } catch {}
+  /* ---- Theme toggle + persistence ---- */
+  var themeToggle = document.getElementById("theme-toggle");
+  if (themeToggle) {
+    themeToggle.addEventListener("click", function () {
+      var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+      root.setAttribute("data-theme", next);
+      try {
+        localStorage.setItem("isekai-theme", next);
+      } catch (e) {}
+    });
   }
 
-  if (!themeToggle || !themeToggleText) {
-    return;
+  /* ---- Mobile nav toggle ---- */
+  var navToggle = document.getElementById("nav-toggle");
+  var nav = document.getElementById("primary-nav");
+  if (navToggle && nav) {
+    var setNav = function (open) {
+      nav.classList.toggle("open", open);
+      navToggle.setAttribute("aria-expanded", String(open));
+      navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    };
+    navToggle.addEventListener("click", function () {
+      setNav(!nav.classList.contains("open"));
+    });
+    nav.addEventListener("click", function (e) {
+      if (e.target.tagName === "A") setNav(false);
+    });
   }
 
-  const isDark = nextTheme === "dark";
-  themeToggle.setAttribute("aria-pressed", String(isDark));
-  themeToggle.setAttribute("aria-label", `Switch to ${isDark ? "light" : "dark"} theme`);
-  themeToggleText.textContent = isDark ? "Light" : "Dark";
-}
+  /* ---- Resolve the latest installer for the visitor's platform ---- */
+  var downloadLinks = document.querySelectorAll(".js-download");
+  var heroDownload = document.querySelector(".btn-download.js-download");
+  var cachedAssetKey = "isekai-latest-release-assets";
+  var releasesUrl = "https://github.com/builtbyshnk/isekai_skycotl/releases/latest";
+  var baseAssets = {
+    windows: "https://github.com/builtbyshnk/isekai_skycotl/releases/download/v0.2.2/Isekai_0.2.2_x64_en-US.msi",
+    macos: "https://github.com/builtbyshnk/isekai_skycotl/releases/download/v0.2.2/Isekai_0.2.2_aarch64.dmg",
+    linux: "https://github.com/builtbyshnk/isekai_skycotl/releases/download/v0.2.2/Isekai_0.2.2_amd64.AppImage"
+  };
 
-function isMacOS() {
-  const platform = navigator.userAgentData?.platform || navigator.platform || "";
-  const userAgent = navigator.userAgent || "";
+  var currentPlatform = function () {
+    var platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+    var userAgent = navigator.userAgent || "";
+    if (/mac/i.test(platform) || /Macintosh|Mac OS X/i.test(userAgent)) return "macos";
+    if (/linux/i.test(platform) || /Linux|X11/i.test(userAgent)) return "linux";
+    if (/win/i.test(platform) || /Windows/i.test(userAgent)) return "windows";
+    return null;
+  };
 
-  return /mac/i.test(platform) || /Macintosh|Mac OS X/i.test(userAgent);
-}
+  var platformLabel = function (platform) {
+    if (platform === "macos") return "macOS";
+    if (platform === "linux") return "Linux";
+    if (platform === "windows") return "Windows";
+    return null;
+  };
 
-function chooseDownloadAsset(assets, platform) {
-  const preferredExtensions =
-    platform === "macos" ? [".dmg"] : [".msi", ".exe", ".zip"];
+  var assetForPlatform = function (assets, platform) {
+    var patterns = {
+      windows: [/\.msi$/i, /\.exe$/i],
+      macos: [/\.dmg$/i],
+      linux: [/\.appimage$/i, /\.deb$/i, /\.rpm$/i]
+    };
+    var candidates = patterns[platform] || [];
+    for (var i = 0; i < candidates.length; i += 1) {
+      var asset = assets.find(function (item) {
+        return candidates[i].test(item.name || "") && !/\.sig$/i.test(item.name || "");
+      });
+      if (asset && asset.browser_download_url) return asset.browser_download_url;
+    }
+    return null;
+  };
 
-  return preferredExtensions
-    .map((extension) =>
-      assets.find((asset) => asset.name.toLowerCase().endsWith(extension)),
-    )
-    .find(Boolean);
-}
-
-async function hydrateLatestRelease() {
-  const preferredPlatform = isMacOS() ? "macos" : "windows";
-  const alternatePlatform = preferredPlatform === "macos" ? "windows" : "macos";
-
-  try {
-    const response = await fetch(apiUrl, {
-      headers: { Accept: "application/vnd.github+json" },
+  var setDownloadUrl = function (url, platform) {
+    downloadLinks.forEach(function (link) {
+      link.href = url;
+      if (platform) link.setAttribute("download", "");
+      else link.removeAttribute("download");
     });
 
-    if (!response.ok) {
-      throw new Error(`GitHub responded with ${response.status}`);
-    }
+    var label = platformLabel(platform);
+    if (heroDownload && label) heroDownload.textContent = "Get Isekai for " + label + " 🚀";
+  };
 
-    const release = await response.json();
-    const assets = release.assets || [];
-    const asset = chooseDownloadAsset(assets, preferredPlatform);
-    const alternateAsset = chooseDownloadAsset(assets, alternatePlatform);
-    const version = release.tag_name || `v${currentVersion}`;
+  if (downloadLinks.length) {
+    var platform = currentPlatform();
+    setDownloadUrl((platform && baseAssets[platform]) || releasesUrl, platform);
 
-    if (asset) {
-      downloadButton.href = asset.browser_download_url;
-      downloadButton.querySelector("span").textContent =
-        preferredPlatform === "macos" ? `Download macOS ${version}` : `Download Windows ${version}`;
-    } else {
-      downloadButton.href = release.html_url || releasesUrl;
-      downloadButton.querySelector("span").textContent = `View ${version}`;
-    }
-
-    if (alternateDownloadLink) {
-      alternateDownloadLink.href = alternateAsset?.browser_download_url || release.html_url || releasesUrl;
-      alternateDownloadLink.textContent =
-        alternatePlatform === "windows" ? "Download for Windows" : "Download for macOS";
-    }
-  } catch (error) {
-    downloadButton.href = releasesUrl;
-    downloadButton.querySelector("span").textContent = "Download latest version";
-
-    if (alternateDownloadLink) {
-      alternateDownloadLink.href = releasesUrl;
-      alternateDownloadLink.textContent = "Download for Windows";
-    }
-  }
-}
-
-function startPreviewVideo() {
-  if (!previewVideo) {
-    return;
-  }
-
-  previewVideo.muted = true;
-  previewVideo.loop = true;
-  previewVideo.play().catch(() => {});
-  previewVideo.addEventListener("ended", () => {
-    previewVideo.currentTime = 0;
-    previewVideo.play().catch(() => {});
-  });
-}
-
-function setActiveNav() {
-  let current;
-
-  sections.forEach((section) => {
-    if (section.getBoundingClientRect().top <= 150) {
-      current = section;
-    }
-  });
-
-  sectionNavLinks.forEach((link) => {
-    const isActive = current && link.getAttribute("href") === `#${current.id}`;
-    link.classList.toggle("active", Boolean(isActive));
-  });
-}
-
-document.querySelectorAll("[data-reveal]").forEach((element) => {
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("revealed");
-          observer.unobserve(entry.target);
+    fetch("https://api.github.com/repos/builtbyshnk/isekai_skycotl/releases/latest", {
+      headers: { Accept: "application/vnd.github+json" }
+    })
+      .then(function (res) {
+        var rateLimited =
+          res.status === 429 ||
+          (res.status === 403 && res.headers.get("x-ratelimit-remaining") === "0");
+        if (rateLimited) throw new Error("GitHub API rate limit exceeded");
+        if (!res.ok) throw new Error("GitHub API " + res.status);
+        return res.json();
+      })
+      .then(function (release) {
+        var assets = release.assets || [];
+        var urls = {
+          windows: assetForPlatform(assets, "windows"),
+          macos: assetForPlatform(assets, "macos"),
+          linux: assetForPlatform(assets, "linux")
+        };
+        try {
+          localStorage.setItem(cachedAssetKey, JSON.stringify(urls));
+        } catch (e) {}
+        setDownloadUrl((platform && urls[platform]) || release.html_url || releasesUrl, platform && urls[platform] ? platform : null);
+      })
+      .catch(function () {
+        try {
+          var cached = JSON.parse(localStorage.getItem(cachedAssetKey) || "{}");
+          setDownloadUrl((platform && cached[platform]) || (platform && baseAssets[platform]) || releasesUrl, platform);
+        } catch (e) {
+          setDownloadUrl((platform && baseAssets[platform]) || releasesUrl, platform);
         }
       });
-    },
-    { threshold: 0.14 },
-  );
+  }
 
-  observer.observe(element);
-});
-
-document.querySelectorAll("details").forEach((details) => {
-  details.addEventListener("toggle", () => {
-    if (!details.open) {
-      return;
-    }
-
-    document.querySelectorAll("details").forEach((other) => {
-      if (other !== details) {
-        other.open = false;
-      }
+  /* ---- Scroll reveal (progressive enhancement) ---- */
+  var revealables = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window && revealables.length) {
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+    );
+    revealables.forEach(function (el) {
+      observer.observe(el);
     });
-  });
-});
-
-themeToggle?.addEventListener("click", () => {
-  setTheme(getCurrentTheme() === "dark" ? "light" : "dark");
-});
-
-document.addEventListener("pointermove", (event) => {
-  cursorLight.style.opacity = "1";
-  cursorLight.style.transform = `translate(${event.clientX - 180}px, ${event.clientY - 180}px)`;
-});
-
-document.addEventListener("pointerleave", () => {
-  cursorLight.style.opacity = "0";
-});
-
-document.addEventListener("scroll", setActiveNav, { passive: true });
-
-setTheme(getCurrentTheme(), false);
-hydrateLatestRelease();
-startPreviewVideo();
-setActiveNav();
+  } else {
+    revealables.forEach(function (el) {
+      el.classList.add("is-visible");
+    });
+  }
+})();
